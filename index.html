@@ -1,0 +1,745 @@
+﻿<!DOCTYPE html>
+<html lang=zh-CN><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1.0">
+<title>彩票选号助手</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh;display:flex;justify-content:center;padding:24px 12px}
+.app{max-width:960px;width:100%}
+h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
+.tab-bar{display:flex;gap:0;margin-bottom:16px;background:#f0f2f5;border-radius:8px;padding:3px}
+.tab-bar button{flex:1;padding:9px 14px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:#666;transition:all .2s}
+.tab-bar button.on{background:#e63946;color:#fff}
+.tab-con{display:none}.tab-con.on{display:block}
+.game-sw{display:flex;gap:0;margin-bottom:16px;background:#f0f2f5;border-radius:8px;padding:3px}
+.game-sw button{flex:1;padding:9px 14px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:#666;transition:all .2s}
+.game-sw button.on{background:#1a2d7a;color:#fff;box-shadow:0 2px 12px rgba(26,45,122,.4);font-weight:700}
+.game-sw button[data-game=dlt].on{background:#8b1a24;font-weight:700;box-shadow:0 2px 12px rgba(139,26,36,.4)}
+.sec{margin-bottom:14px}.sec:last-of-type{margin-bottom:0}
+.sec .sec-lbl{font-size:13px;font-weight:600;color:#333;margin-bottom:8px}
+.sec .sec-lbl small{font-weight:400;color:#999;font-size:12px}
+.pkr-col{display:flex;flex-direction:column;gap:6px}
+.pkr-row{display:flex;align-items:center;gap:8px}
+.pkr-row .pl{font-size:12px;color:#999;width:16px;text-align:right;flex-shrink:0}
+.pkr-row .opts{display:flex;gap:3px}
+.pkr-row .opts button{width:36px;height:32px;border:1px solid #d9d9d9;border-radius:5px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;color:#555;padding:0}
+.pkr-row .opts button:hover{border-color:#4361ee}
+.pkr-row .opts button.sel{background:#4361ee;border-color:#4361ee;color:#fff}
+.pkr-row .opts button.sel.r1{background:#2ec4b6;border-color:#2ec4b6}
+.pkr-row .opts button.sel.r2{background:#e63946;border-color:#e63946}
+.bzone{margin-top:10px;padding:10px 12px;background:#f8f9ff;border-radius:6px;border:1px solid #e8ecff}
+.bzone .b-lbl{font-size:12px;font-weight:600;color:#4361ee;margin-bottom:6px}
+.z-zone{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+.z-zone .zi-wrap{display:inline-flex;align-items:center;gap:2px}
+.z-zone .zi-wrap input{width:52px;padding:6px 2px;border:1px solid #d9d9d9;border-radius:5px;font-size:14px;font-weight:600;text-align:center;outline:none;transition:border-color .2s}
+.z-zone .zi-wrap input:focus{border-color:#4361ee;box-shadow:0 0 0 2px rgba(67,97,238,.1)}
+.z-zone .zi-wrap input.error{border-color:#e63946}
+.z-zone .zi-wrap .zi-del{border:none;background:none;color:#ccc;cursor:pointer;font-size:16px;padding:0 2px;line-height:1;transition:color .15s}
+.z-zone .zi-wrap .zi-del:hover{color:#e63946}
+.z-zone .zi-add{display:inline-flex;align-items:center;gap:3px;padding:6px 12px;border:1px dashed #d9d9d9;border-radius:5px;font-size:12px;color:#999;cursor:pointer;background:none;transition:all .15s}
+.z-zone .zi-add:hover{border-color:#4361ee;color:#4361ee;background:#f8f9ff}
+.err-msg{font-size:12px;color:#e63946;min-height:16px}
+.acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.btn{padding:8px 20px;border:none;border-radius:5px;font-size:13px;font-weight:500;cursor:pointer;transition:background .2s}
+.btn:active{transform:scale(.97)}
+.btn-pri{background:#4361ee;color:#fff}.btn-pri:hover{background:#3651d4}
+.btn-sec{background:#e8e8e8;color:#333}.btn-sec:hover{background:#d9d9d9}
+.btn-suc{background:#2ec4b6;color:#fff}.btn-suc:hover{background:#25a99d}
+.btn-warn{background:#f0a030;color:#fff}.btn-warn:hover{background:#d8902a}
+.btn-dgr{background:#e63946;color:#fff}.btn-dgr:hover{background:#d12e3b}
+.stats{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:#555}
+.stats .num{font-weight:600;color:#1a1a2e}
+.stats .num.hl{color:#4361ee;font-size:17px}
+.res-area{min-height:80px}
+.res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px;margin-top:10px}
+.res-item{display:flex;align-items:center;gap:4px;padding:6px 10px;background:#f8f9fc;border-radius:5px;font-size:13px;font-family:"SF Mono","Fira Code","Consolas",monospace;transition:background .15s;flex-wrap:wrap}
+.res-item:hover{background:#eef0f7}
+.ball{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:12px;font-weight:600;color:#fff;flex-shrink:0}
+.ball.z1{background:#4361ee}.ball.z2{background:#2ec4b6}.ball.z3{background:#e63946}
+.ball.blue{background:#f0a030}
+.emp{text-align:center;padding:30px 16px;color:#999;font-size:13px}
+.emp .icon{font-size:36px;margin-bottom:10px}
+.legend{display:flex;gap:12px;font-size:12px;color:#666;margin-top:10px;flex-wrap:wrap}
+.legend .ball{width:14px;height:14px;font-size:0}
+.pg{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;flex-wrap:wrap}
+.pg .btn{padding:5px 12px;font-size:12px}.pg .btn:disabled{opacity:.4;cursor:default}
+.pg .pi{font-size:12px;color:#666}
+.inp-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.inp-row label{font-size:12px;color:#666;min-width:40px}
+.inp-row input{width:60px;padding:5px 6px;border:1px solid #d9d9d9;border-radius:4px;font-size:12px;outline:none;text-align:center}
+.inp-row input:focus{border-color:#4361ee}
+.inp-row input.nl{width:80px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px}
+.stat-item{display:flex;justify-content:space-between;padding:4px 8px;background:#f8f9fc;border-radius:4px;font-size:12px;font-family:"SF Mono",Consolas,monospace}
+.stat-item .cnt{font-weight:600;color:#4361ee}
+.stat-bar{height:6px;background:#e8ecff;border-radius:3px;margin-top:3px;overflow:hidden}
+.stat-bar .fill{height:100%;background:#4361ee;border-radius:3px;transition:width .3s}
+.st{width:100%;border-collapse:collapse;font-size:12px}
+.st th,.st td{padding:4px 8px;text-align:center;border-bottom:1px solid #eee}
+.st th{background:#f8f9fc;font-weight:600;color:#555}
+.dl{max-height:300px;overflow-y:auto;border:1px solid #eee;border-radius:4px;font-size:11px;font-family:"SF Mono",Consolas,monospace;margin-top:8px}
+.dl table{width:100%;border-collapse:collapse}
+.dl th,.dl td{padding:3px 5px;text-align:center;border-bottom:1px solid #f0f0f0;white-space:nowrap}
+.dl th{position:sticky;top:0;background:#f8f9fc;font-weight:600;color:#555;z-index:1}
+.dl .del{cursor:pointer;color:#e63946;font-weight:bold}
+.sl{font-size:13px;color:#555;margin-bottom:8px}
+.sl .nm{font-weight:600;color:#4361ee}
+.sav-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;font-family:"SF Mono",Consolas,monospace;flex-wrap:wrap}
+.sav-row:last-child{border-bottom:none}
+.sav-row .s-type{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:600}.sav-row .s-type.t-dlt{background:#fce4e4;color:#8b1a24}.sav-row .s-type.t-ssq{background:#e4e8fc;color:#1a2d7a}
+.sav-row .s-time{color:#999;font-size:11px}
+.sav-acts{display:flex;gap:4px;margin-left:auto}
+.sav-acts .btn{padding:3px 8px;font-size:11px;border-radius:3px}
+.sav-empty{text-align:center;padding:30px 16px;color:#999;font-size:13px}
+.fn{text-align:center;font-size:11px;color:#bbb;margin-top:20px}
+@media(max-width:480px){
+  .pkr-row .opts button{width:32px;height:30px;font-size:11px}
+  .ball{width:24px;height:24px;font-size:11px}
+  body{padding:12px 8px}.card{padding:14px}
+  .inp-row input{width:50px}
+  .stat-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
+}
+</style></head><body><div class=app>
+<h1>彩票选号助手</h1>
+<div class=game-sw id=gameSwitch><button class=on data-game=ssq>双色球</button><button data-game=dlt>大乐透</button></div>
+<div class=tab-bar id=tabBar><button class=on data-tab=filter>筛选</button><button data-tab=stats>统计</button><button data-tab=save>记录</button></div>
+<div class="tab-con on" id=tabFilter>
+<div class=card>
+<div class=sec><div class=sec-lbl>① 红区路数 <small>每位除3余数</small></div><div class=pkr-col id=routePickers></div></div>
+<div class=sec><div class=sec-lbl>② 红区奇偶</div><div class=pkr-col id=parityPickers></div></div>
+<div class=sec><div class=sec-lbl>③ 红区区间分布 <small>每格填一个3位数区间比</small></div>
+  <div class=z-zone id=zoneInputs></div>
+  <div class=err-msg id=errZone></div>
+</div>
+<div class=sec><div class=sec-lbl>④ 蓝区</div>
+  <div class=bzone id=blueZone>
+    <div class=b-lbl>路数</div><div class=pkr-col id=bRoutePickers></div>
+    <div class=b-lbl style=margin-top:6px>奇偶</div><div class=pkr-col id=bParityPickers></div>
+    <div style=margin-top:8px;padding-top:8px;border-top:1px solid #e8ecff>
+      <label style=font-size:12px;font-weight:500;color:#4361ee;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none>
+        <input type=checkbox id=blueNumEnable onchange=toggleBlueNum()> 指定号码
+      </label>
+      <div id=blueNumInputs style=margin-top:6px;display:none;flex-wrap:wrap;gap:6px></div>
+    </div>
+  </div>
+</div>
+<div class=acts>
+  <button class="btn btn-pri" id=btnFilter>筛选号码</button>
+  <button class="btn btn-suc" id=btnRandom>随机一注</button>
+  <button class="btn btn-sec" id=btnClear>清空</button>
+  <button class="btn btn-warn" id=btnSaveResult style=display:none>保存结果</button>
+  <span style="margin-left:auto;font-size:12px;color:#999">共 <span id=totalCombos class=num>-</span> 种</span>
+</div>
+</div>
+<div class=card><div class=res-area>
+<div style=display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px>
+  <div style=font-size:14px;font-weight:600;color:#333>筛选结果</div>
+  <div class=stats><span>匹配 <span class="num hl" id=countResult>-</span> 注</span><span>耗时 <span class=num id=timeResult>-</span> ms</span></div>
+</div>
+<div id=resultContainer><div class=emp id=emptyState><div class=icon>🔍</div><div style=margin-bottom:12px>选择条件后点击「筛选号码」</div>
+<div class=legend style=justify-content:center><span class=legend-item><span class="ball z1">1</span> 一区(1-11)</span><span class=legend-item><span class="ball z2">2</span> 二区(12-22)</span><span class=legend-item><span class="ball z3">3</span> 三区(23-33)</span><span class=legend-item><span class="ball blue">蓝</span> 蓝球</span></div>
+</div></div>
+<div class=pg id=pagination style=display:none></div>
+<div id=randomPickArea style=display:none;margin-top:12px;text-align:center>
+  <span style=font-size:12px;color:#666>从结果中随机选取</span>
+  <input type=number id=randomPickCount value=5 min=1 max=100 style=width:60px;padding:4px 6px;border:1px solid #d9d9d9;border-radius:4px;font-size:13px;text-align:center>
+  <span style=font-size:12px;color:#666>注</span>
+  <button class="btn btn-suc" id=btnRandomPick>随机选取</button>
+</div>
+</div></div>
+<div class=fn>仅供娱乐 - 彩票有风险 投注需谨慎</div>
+</div>
+<div class="tab-con" id=tabStats>
+<div class=card>
+<div class=sec><div class=sec-lbl>录入历史数据</div>
+<div class=inp-row><label>期号</label><input id=sPeriod type=text placeholder="2026001" class=nl></div>
+<div class=inp-row><label>红球</label><input id=sRed1 class=nl placeholder=01><input id=sRed2 class=nl placeholder=02><input id=sRed3 class=nl placeholder=03><input id=sRed4 class=nl placeholder=04><input id=sRed5 class=nl placeholder=05><input id=sRed6 class=nl placeholder=06><span style=font-size:11px;color:#999> 空格分隔</span></div>
+<div class=inp-row><label>蓝球</label><input id=sBlue1 class=nl placeholder=蓝1><input id=sBlue2 class=nl placeholder=蓝2><span style=font-size:11px;color:#999> 输入后自动分析</span></div>
+<div class=acts>
+  <button class="btn btn-pri" id=btnAddData>添加</button>
+ <button class="btn btn-dgr" id=btnClearData>清空所有数据</button>
+  <button class="btn btn-sec" id=btnGenSample>生成示例(10期)</button>
+  <button class="btn btn-warn" id=btnPasteImport style=font-size:12px;padding:4px 12px>📋 导入号码</button>
+ <span style="margin-left:auto;font-size:12px;color:#999">已录 <span class=num id=dataCount>0</span> 期</span>
+</div>
+</div>
+</div>
+<div class=card id=statsDisplay>
+<div class=sec><div class=sec-lbl>号码频率统计</div>
+<div class=sl>红球总出现次数 <span class=nm id=totalRedCount>0</span> | 蓝球总出现次数 <span class=nm id=totalBlueCount>0</span></div>
+<div><div style=font-size:13px;font-weight:500;color:#4361ee;margin-bottom:4px>红球号码出现次数</div><div class=stat-grid id=redFreqGrid></div></div>
+<div style=margin-top:10px><div style=font-size:13px;font-weight:500;color:#f0a030;margin-bottom:4px>蓝球号码出现次数</div><div class=stat-grid id=blueFreqGrid></div></div>
+</div>
+<div class=sec style=margin-top:14px><div class=sec-lbl>路数统计 <small>红区</small></div>
+<div class=sl>出现总次数 <span class=nm id=totalRouteCount>0</span></div>
+<div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>每位路数(0/1/2)出现次数</div><table class=st id=routeStatTable></table></div>
+<div style=margin-top:10px><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>路数组合出现次数(Top 20)</div><div class=stat-grid id=routeCombGrid></div></div>
+</div>
+<div class=sec style=margin-top:14px><div class=sec-lbl>奇偶统计 <small>红区</small></div>
+<div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>奇偶组合出现次数(Top 20)</div><div class=stat-grid id=parityCombGrid></div></div>
+</div>
+<div class=sec style=margin-top:14px><div class=sec-lbl>后区路数统计 <small>蓝球/后区</small></div>
+<div class=sl>出现总次数 <span class=nm id=totalBRouteCount>0</span></div>
+<div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>每位路数(0/1/2)出现次数</div><table class=st id=bRouteStatTable></table></div>
+<div style=margin-top:10px><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>路数组合出现次数(Top 10)</div><div class=stat-grid id=bRouteCombGrid></div></div>
+</div>
+<div class=sec style=margin-top:14px><div class=sec-lbl>后区奇偶统计 <small>蓝球/后区</small></div>
+<div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>奇偶组合出现次数(Top 10)</div><div class=stat-grid id=bParityCombGrid></div></div>
+</div>
+<div class=sec style=margin-top:14px><div class=sec-lbl>区间分布统计</div>
+<div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>区间组合出现次数(Top 20)</div><div class=stat-grid id=zoneCombGrid></div></div>
+</div>
+<div class=sec style=margin-top:14px><div class=sec-lbl>已录入数据</div>
+  <div class=dl id=dataListContainer><div class=emp style=padding:16px;font-size:12px>暂无数据</div></div>
+</div>
+</div>
+</div>
+<div class="tab-con" id=tabSave>
+<div class=card><div class=sec>
+<div style=display:flex;justify-content:space-between;align-items:center;margin-bottom:10px>
+  <div class=sec-lbl style=margin:0>已保存的号码</div>
+  <button class="btn btn-dgr" id=clearAllSaved style=font-size:12px;padding:4px 12px>清空全部</button>
+</div>
+<div id=saveListContainer><div class=sav-empty>暂无保存记录</div></div>
+</div></div>
+</div>
+<div class=fn>仅供娱乐 - 彩票有风险 投注需谨慎</div>
+</div>
+<script>
+const G = {
+  ssq: { max:33, z:[11,22,33], pick:6, bMax:16, bPick:1, zl:['一区(1-11)','二区(12-22)','三区(23-33)'] },
+  dlt: { max:35, z:[12,24,35], pick:5, bMax:12, bPick:2, zl:['一区(1-12)','二区(13-24)','三区(25-35)'] }
+};
+let gk = 'ssq';
+function c() { return G[gk]; }
+function allN() { return Array.from({length:c().max}, (_,i)=>i+1); }
+function allB() { return Array.from({length:c().bMax}, (_,i)=>i+1); }
+function zn(n) { const z = c().z; if(n<=z[0]) return 0; if(n<=z[1]) return 1; return 2; }
+function rt(n) { return n % 3; }
+function pt(n) { return n % 2 === 1 ? '奇' : '偶'; }
+function* comb(arr, k) { if(k===0){yield[];return} for(let i=0;i<=arr.length-k;i++) for(const r of comb(arr.slice(i+1),k-1)) yield[arr[i],...r]; }
+
+// Zone inputs
+function mkZoneInput() {
+  const w = document.createElement('span'); w.className = 'zi-wrap';
+  const i = document.createElement('input'); i.type = 'text'; i.maxLength = 3; i.placeholder = '312'; i.className = 'zone-ipt';
+  i.addEventListener('focus', () => { document.getElementById('errZone').textContent = ''; i.classList.remove('error'); });
+  const d = document.createElement('button'); d.className = 'zi-del'; d.textContent = '×';
+  d.addEventListener('click', () => { const all = document.querySelectorAll('.zi-wrap'); if (all.length > 1) w.remove(); });
+  w.appendChild(i); w.appendChild(d); return w;
+}
+function initZoneInputs(n) {
+  const c = document.getElementById('zoneInputs'); c.innerHTML = '';
+  for (let j = 0; j < n; j++) c.appendChild(mkZoneInput());
+  const add = document.createElement('button'); add.className = 'zi-add'; add.textContent = '+ 添加';
+  add.addEventListener('click', () => { c.insertBefore(mkZoneInput(), add); });
+  c.appendChild(add);
+}
+function getZonePat() {
+  const vals = [];
+  document.querySelectorAll('.zone-ipt').forEach(inp => {
+    const v = inp.value.trim(); if (!v) return;
+    if (!/^[0-9]{3}$/.test(v)) { inp.classList.add('error'); vals._err = 'FORMAT'; return; }
+    const d = v.split('').map(Number);
+    if (d.reduce((a,b)=>a+b,0) !== c().pick) { inp.classList.add('error'); vals._err = 'SUM'; return; }
+    vals.push(d);
+  });
+  if (vals._err) return vals._err;
+  return vals.length ? vals : null;
+}
+function buildPickers() {
+  const pk = c().pick;
+  ['route','parity'].forEach(t => {
+    const el = document.getElementById(t+'Pickers'); el.innerHTML = '';
+    const vv = t === 'route' ? ['0','1','2'] : ['奇','偶'];
+    for (let i = 0; i < pk; i++) {
+      const row = document.createElement('div'); row.className = 'pkr-row';
+      const lbl = document.createElement('span'); lbl.className = 'pl'; lbl.textContent = i+1;
+      row.appendChild(lbl);
+      const opts = document.createElement('div'); opts.className = 'opts';
+      vv.forEach(v => {
+        const b = document.createElement('button');
+        b.dataset.v = v; b.textContent = v;
+        b.addEventListener('click', () => {
+          b.classList.toggle('sel');
+          if (t === 'route') { b.classList.toggle('r1', b.classList.contains('sel') && v === '1'); b.classList.toggle('r2', b.classList.contains('sel') && v === '2'); }
+        });
+        opts.appendChild(b);
+      });
+      row.appendChild(opts); el.appendChild(row);
+    }
+  });
+  ['bRoute','bParity'].forEach(t => {
+    const el = document.getElementById(t+'Pickers'); el.innerHTML = '';
+    const vv = t === 'bRoute' ? ['0','1','2'] : ['奇','偶'];
+    for (let i = 0; i < c().bPick; i++) {
+      const row = document.createElement('div'); row.className = 'pkr-row'; row.style.gap = '6px';
+      const lbl = document.createElement('span'); lbl.className = 'pl'; lbl.textContent = i+1;
+      row.appendChild(lbl);
+      const opts = document.createElement('div'); opts.className = 'opts';
+      vv.forEach(v => {
+        const b = document.createElement('button'); b.style.width = '32px'; b.style.height = '28px';
+        b.dataset.v = v; b.textContent = v;
+        b.addEventListener('click', () => b.classList.toggle('sel'));
+        opts.appendChild(b);
+      });
+      row.appendChild(opts); el.appendChild(row);
+    }
+  });
+  document.getElementById('sRed6').style.display = c().pick === 6 ? '' : 'none';
+  document.getElementById('sBlue2').style.display = c().bPick === 2 ? '' : 'none';
+}
+function getPat(id) {
+  const rows = document.querySelectorAll('#'+id+' .pkr-row');
+  let has = 0;
+  const arr = Array.from(rows).map(r => {
+    const sel = r.querySelectorAll('.opts button.sel');
+    if (sel.length) has = 1;
+    return sel.length ? Array.from(sel).map(b => b.dataset.v) : null;
+  });
+  return has ? arr : null;
+}
+function getRoutePat() { return getPat('routePickers'); }
+function getParityPat() { return getPat('parityPickers'); }
+function getBRoutePat() { return getPat('bRoutePickers'); }
+function getBParityPat() { return getPat('bParityPickers'); }
+function toggleBlueNum() {
+  const en = document.getElementById('blueNumEnable').checked;
+  document.getElementById('blueNumInputs').style.display = en ? 'flex' : 'none';
+  if (en && !document.querySelector('.blue-num-ipt')) initBlueNumInputs();
+}
+function initBlueNumInputs() {
+  const c = document.getElementById('blueNumInputs'); c.innerHTML = '';
+  for (let i = 0; i < G[gk].bPick; i++) {
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.maxLength = 2; inp.placeholder = String(i+1); inp.className = 'blue-num-ipt';
+    inp.style.cssText = 'width:48px;padding:5px 4px;border:1px solid #d9d9d9;border-radius:4px;font-size:13px;text-align:center;outline:none';
+    c.appendChild(inp);
+  }
+}
+function getBlueNumPat() {
+  if (!document.getElementById('blueNumEnable').checked) return null;
+  const vals = [];
+  for (const inp of document.querySelectorAll('.blue-num-ipt')) {
+    const v = inp.value.trim();
+    if (!v) return null;
+    const n = parseInt(v);
+    if (isNaN(n) || n < 1 || n > G[gk].bMax) return 'INVALID';
+    vals.push(n);
+  }
+  if (new Set(vals).size !== vals.length) return 'DUP';
+  vals.sort((a,b)=>a-b);
+  return vals;
+}
+
+function swG(key) {
+  gk = key;
+  const cfg = c();
+  document.querySelectorAll('#gameSwitch button').forEach(b => b.classList.toggle('on', b.dataset.game === key));
+  document.querySelector('.legend').innerHTML = cfg.zl.map((l,i) => `<span class=legend-item><span class="ball z${i+1}">${i+1}</span> ${l}</span>`).join('') + '<span class=legend-item><span class="ball blue">蓝</span> 蓝球</span>';
+  buildPickers(); clearAll();
+  initBlueNumInputs();
+  initZoneInputs(3);
+  document.getElementById('sRed6').style.display = cfg.pick === 6 ? '' : 'none';
+  document.getElementById('sBlue2').style.display = cfg.bPick === 2 ? '' : 'none';
+  const n = cfg.max, k = cfg.pick;
+  let t = 1;
+  for (let i = 1; i <= k; i++) t = t * (n - k + i) / i;
+  document.getElementById('totalCombos').textContent = Math.round(t).toLocaleString();
+}
+document.querySelectorAll('#gameSwitch button').forEach(b => b.addEventListener('click', () => swG(b.dataset.game)));
+document.querySelectorAll('#tabBar button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#tabBar button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    document.querySelectorAll('.tab-con').forEach(x => x.classList.remove('on'));
+    document.getElementById('tab' + b.dataset.tab.charAt(0).toUpperCase() + b.dataset.tab.slice(1)).classList.add('on');
+    if (b.dataset.tab === 'stats') renderStats();
+    if (b.dataset.tab === 'save') renderSaved();
+  });
+});
+
+// Filter
+function doFilter() {
+  document.querySelectorAll('.zone-ipt').forEach(i => i.classList.remove('error'));
+  const e = document.getElementById('errZone');
+  const zp = getZonePat();
+  if (zp === 'FORMAT') { e.textContent = '每项必须是3位数字'; return; }
+  if (zp === 'SUM') { e.textContent = '每项三数和必须=' + c().pick; return; }
+  e.textContent = '';
+  const bnp = getBlueNumPat();
+  if (bnp === 'INVALID') { e.textContent = '????????'; return; }
+  if (bnp === 'DUP') { e.textContent = '????????'; return; }
+  const rp = getRoutePat(), pp = getParityPat(), brp = getBRoutePat(), bpp = getBParityPat();
+  
+  if (!rp && !pp && !zp && !brp && !bpp && !bnp) {
+    document.getElementById('resultContainer').innerHTML = '<div class=emp><div class=icon>⚠️</div><div>请至少选择一项筛选条件</div></div>';
+    document.getElementById('countResult').textContent = '-'; document.getElementById('timeResult').textContent = '-';
+ document.getElementById('pagination').style.display = 'none'; document.getElementById('btnSaveResult').style.display = 'none';
+  document.getElementById('randomPickArea').style.display = 'none';
+  return;
+  }
+  const pk = c().pick, bpk = c().bPick;
+  document.getElementById('resultContainer').innerHTML = '<div style=text-align:center;padding:20px;color:#666;font-size:13px>⏳ 正在筛选中...</div>';
+  document.getElementById('pagination').style.display = 'none'; document.getElementById('btnSaveResult').style.display = 'none';
+  const zoneSet = zp ? new Set(zp.map(p => p.join(','))) : null;
+  setTimeout(() => {
+    const t0 = performance.now(), results = [], rn = allN(), bn = allB();
+    for (const rc of comb(rn, pk)) {
+      if (rp && !rp.every((a,i) => a === null || a.includes(String(rt(rc[i]))))) continue;
+      if (pp && !pp.every((a,i) => a === null || a.includes(pt(rc[i])))) continue;
+      if (zp) { const cnt = [0,0,0]; for (const n of rc) cnt[zn(n)]++; if (!zoneSet.has(cnt.join(','))) continue; }
+      if (!brp && !bpp) { results.push({r:rc, b:[]}); continue; }
+      for (const bc of comb(bn, bpk)) {
+        if (brp && !brp.every((a,i) => a === null || a.includes(String(rt(bc[i]))))) continue;
+        if (bnp && !bnp.every((n,i) => n === bc[i])) continue;
+        if (bpp && !bpp.every((a,i) => a === null || a.includes(pt(bc[i])))) continue;
+        results.push({r:rc, b:bc});
+      }
+    }
+    document.getElementById('countResult').textContent = results.length.toLocaleString();
+    document.getElementById('timeResult').textContent = (performance.now() - t0).toFixed(1);
+    renderRes(results, 0); lr = results;
+    document.getElementById('btnSaveResult').style.display = results.length ? '' : 'none';
+  }, 30);
+}
+let lr = [], cp = 0;
+const PS = 50;
+function renderRes(r, pg) {
+  lr = r; const total = r.length, tp = Math.ceil(total / PS) || 1;
+  if (pg >= tp) pg = tp - 1; if (pg < 0) pg = 0; cp = pg;
+  const st = pg * PS, en = Math.min(st + PS, total), items = r.slice(st, en);
+  const ct = document.getElementById('resultContainer'), pn = document.getElementById('pagination');
+if (total === 0) { ct.innerHTML = '<div class=emp><div class=icon>📥</div><div>没有符合条件的结果</div></div>'; pn.style.display = 'none'; return; }
+document.getElementById('randomPickArea').style.display = '';
+let h = '<div class=res-grid>';
+  for (const o of items) {
+    let b = '';
+    for (const n of o.r) b += `<span class="ball z${zn(n)+1}">${String(n).padStart(2,'0')}</span>`;
+    for (const n of o.b) b += `<span class="ball blue">${String(n).padStart(2,'0')}</span>`;
+    h += `<div class=res-item>${b}</div>`;
+  }
+  h += '</div>'; ct.innerHTML = h;
+  let p = `<button class="btn btn-sec" data-p=0 ${pg===0?'disabled':''}>首页</button><button class="btn btn-sec" data-p=${pg-1} ${pg===0?'disabled':''}>上一页</button><span class=pi>第 ${pg+1}/${tp} 页</span><button class="btn btn-sec" data-p=${pg+1} ${pg>=tp-1?'disabled':''}>下一页</button><button class="btn btn-sec" data-p=${tp-1} ${pg>=tp-1?'disabled':''}>末页</button>`;
+  pn.innerHTML = p; pn.style.display = 'flex';
+  pn.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => { const p2 = parseInt(b.dataset.p); if (!isNaN(p2) && p2 >= 0 && p2 < tp) renderRes(r, p2); }));
+}
+
+// Random & Clear
+function doRandom() {
+  document.querySelectorAll('.zone-ipt').forEach(i => i.classList.remove('error'));
+  const e = document.getElementById('errZone');
+  const zp = getZonePat();
+  if (zp === 'FORMAT') { e.textContent = '格式错误'; return; }
+  if (zp === 'SUM') { e.textContent = '三数和必须='+c().pick; return; }
+  e.textContent = '';
+  const bnp = getBlueNumPat();
+  if (bnp === 'INVALID') { e.textContent = '????????'; return; }
+  if (bnp === 'DUP') { e.textContent = '????????'; return; }
+  const rp = getRoutePat(), pp = getParityPat(), brp = getBRoutePat(), bpp = getBParityPat();
+  const pk = c().pick, bpk = c().bPick;
+  const zoneSet = zp ? new Set(zp.map(p => p.join(','))) : null;
+  const t0 = performance.now(), all = [], rn = allN(), bn = allB();
+  for (const rc of comb(rn, pk)) {
+    if (rp && !rp.every((a,i) => a === null || a.includes(String(rt(rc[i]))))) continue;
+    if (pp && !pp.every((a,i) => a === null || a.includes(pt(rc[i])))) continue;
+    if (zp) { const cnt = [0,0,0]; for (const n of rc) cnt[zn(n)]++; if (!zoneSet.has(cnt.join(','))) continue; }
+    if (!brp && !bpp) { all.push({r:rc, b:[]}); continue; }
+    for (const bc of comb(bn, bpk)) {
+      if (brp && !brp.every((a,i) => a === null || a.includes(String(rt(bc[i]))))) continue;
+      if (bnp && !bnp.every((n,i) => n === bc[i])) continue;
+        if (bpp && !bpp.every((a,i) => a === null || a.includes(pt(bc[i])))) continue;
+      all.push({r:rc, b:bc});
+    }
+  }
+  document.getElementById('countResult').textContent = all.length.toLocaleString();
+  document.getElementById('timeResult').textContent = (performance.now() - t0).toFixed(1);
+  if (all.length === 0) {
+    document.getElementById('resultContainer').innerHTML = '<div class=emp><div class=icon>🎉</div><div>当前条件下无可用号码</div></div>';
+    document.getElementById('pagination').style.display = 'none'; document.getElementById('btnSaveResult').style.display = 'none';
+    return;
+  }
+  const p = all[Math.floor(Math.random() * all.length)]; lr = [{r:p.r, b:p.b}];
+  let b = '';
+  for (const n of p.r) b += `<span class="ball z${zn(n)+1}">${String(n).padStart(2,'0')}</span>`;
+  for (const n of p.b) b += `<span class="ball blue">${String(n).padStart(2,'0')}</span>`;
+  document.getElementById('resultContainer').innerHTML = `<div style=text-align:center;padding:16px><div style=font-size:13px;color:#999;margin-bottom:10px>🎲 随机一注</div><div style=display:flex;justify-content:center;gap:4px;flex-wrap:wrap>${b}</div><div style=font-size:12px;color:#bbb;margin-top:8px>共 ${all.length.toLocaleString()} 种组合中随机</div></div>`;
+  document.getElementById('pagination').style.display = 'none'; document.getElementById('btnSaveResult').style.display = '';
+}
+function clearAll() {
+  document.querySelectorAll('#routePickers .opts button, #parityPickers .opts button, #bRoutePickers .opts button, #bParityPickers .opts button').forEach(b => { b.classList.remove('sel'); b.classList.remove('r1'); b.classList.remove('r2'); });
+  lr = []; cp = 0;
+  document.getElementById('countResult').textContent = '-'; document.getElementById('timeResult').textContent = '-';
+  document.getElementById('pagination').style.display = 'none'; document.getElementById('btnSaveResult').style.display = 'none';
+  document.getElementById('resultContainer').innerHTML = document.getElementById('emptyState').outerHTML;
+  document.getElementById('errZone').textContent = '';
+  document.getElementById('blueNumEnable').checked = false;
+  document.getElementById('blueNumInputs').style.display = 'none';
+  document.getElementById('randomPickArea').style.display = 'none';
+}
+document.getElementById('btnFilter').addEventListener('click', doFilter);
+document.getElementById('btnRandom').addEventListener('click', doRandom);
+document.getElementById('btnClear').addEventListener('click', clearAll);
+document.getElementById('btnRandomPick').addEventListener('click', pickRandom);
+function pickRandom() {
+  if (!lr || lr.length === 0) { showToast('请先筛选号码'); return; }
+  const count = Math.min(Math.max(parseInt(document.getElementById('randomPickCount').value) || 1, 1), lr.length, 100);
+  const picked = []; const indices = new Set();
+  while (indices.size < count) indices.add(Math.floor(Math.random() * lr.length));
+  for (const idx of indices) picked.push(lr[idx]);
+  lr = picked; renderRes(picked, 0);
+  document.getElementById('countResult').textContent = picked.length.toLocaleString();
+  document.getElementById('btnSaveResult').style.display = '';
+  document.getElementById('pagination').style.display = 'none';
+  document.getElementById('randomPickArea').style.display = 'none';
+  showToast('已随机选取' + count + '注');
+}
+
+// Save results
+document.getElementById('btnSaveResult').addEventListener('click', () => {
+  if (!lr || lr.length === 0) return;
+  const saved = getSaved();
+  saved.unshift({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), type: gk, numbers: lr.slice(0, Math.min(lr.length, 10)), time: new Date().toLocaleString('zh-CN',{hour12:false}) });
+  localStorage.setItem('lottery_saved', JSON.stringify(saved));
+  showToast('已保存到记录'); renderSaved();
+});
+function getSaved() { try { return JSON.parse(localStorage.getItem('lottery_saved')) || []; } catch { return []; } }
+function renderSaved() {
+  const saved = getSaved(), c = document.getElementById('saveListContainer');
+  if (saved.length === 0) { c.innerHTML = '<div class=sav-empty>暂无保存记录</div>'; return; }
+  c.innerHTML = saved.map(item => {
+    const tName = item.type==='dlt'?'大乐透':'双色球', tCls = item.type==='dlt'?'t-dlt':'t-ssq';
+    const rows = item.numbers.map(d => d.r.map(n=>String(n).padStart(2,'0')).join(' ')+' + '+d.b.map(n=>String(n).padStart(2,'0')).join(' ')).join(' | ');
+    return `<div class=sav-row><span class="s-type ${tCls}">${tName}</span><span>${rows}</span><span class=s-time>${item.time}</span><div class=sav-acts><button class="btn btn-pri" onclick="copySaved('${item.id}')">📋</button><button class="btn btn-dgr" onclick="deleteSaved('${item.id}')">✕</button></div></div>`;
+  }).join('');
+}
+function copySaved(id) {
+  const item = getSaved().find(s => s.id === id); if (!item) return;
+  const txt = item.numbers.map(d => d.r.map(n=>String(n).padStart(2,'0')).join(' ')+' + '+d.b.map(n=>String(n).padStart(2,'0')).join(' ')).join('\n');
+  navigator.clipboard.writeText(txt).then(()=>showToast('已复制')).catch(()=>{ const ta = document.createElement('textarea'); ta.value=txt; ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('已复制'); });
+}
+function deleteSaved(id) { localStorage.setItem('lottery_saved', JSON.stringify(getSaved().filter(s=>s.id!==id))); renderSaved(); showToast('已删除'); }
+document.getElementById('clearAllSaved').addEventListener('click', () => { if (!getSaved().length) return; if (!confirm('确定清空所有保存记录？')) return; localStorage.setItem('lottery_saved', JSON.stringify([])); renderSaved(); showToast('已清空全部'); });
+let toastTimer;
+function showToast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'toast';
+    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#0f172a;color:#f8fafc;padding:10px 24px;border-radius:8px;font-size:14px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.2)';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg; el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(80px)'; }, 2000);
+}
+
+// ============================================================
+// STATS
+// ============================================================
+function getStatsData() { try { const d = localStorage.getItem('lottery_stats_'+gk); return d ? JSON.parse(d) : []; } catch { return []; } }
+function saveStatsData(d) { localStorage.setItem('lottery_stats_'+gk, JSON.stringify(d)); }
+
+document.getElementById('btnAddData').addEventListener('click', () => {
+  const data = getStatsData();
+  if (data.length >= 500) { alert('最多录入500期'); return; }
+  const pv = document.getElementById('sPeriod').value.trim();
+  if (!pv) { alert('请输入期号'); return; }
+  const pk = c().pick, rd = [];
+  let ok = true;
+  for (let i = 0; i < pk; i++) {
+    const v = document.getElementById('sRed'+(i+1)).value.trim();
+    if (!v) { ok = false; break; }
+    const n = parseInt(v);
+    if (isNaN(n) || n < 1 || n > G[gk].max) { ok = false; break; }
+    if (rd.includes(n)) { ok = false; break; }
+    rd.push(n);
+  }
+  if (!ok || rd.length !== pk) { alert('请输入正确的红球号码(1-'+G[gk].max+'，不重复)'); return; }
+  rd.sort((a,b)=>a-b);
+  const bpk = G[gk].bPick, bl = [];
+  for (let i = 0; i < bpk; i++) {
+    const v = document.getElementById('sBlue'+(i+1)).value.trim();
+    if (!v) { ok = false; break; }
+    const n = parseInt(v);
+    if (isNaN(n) || n < 1 || n > G[gk].bMax) { ok = false; break; }
+    if (bl.includes(n)) { ok = false; break; }
+    bl.push(n);
+  }
+  if (!ok || bl.length !== bpk) { alert('请输入正确的蓝球号码(1-'+G[gk].bMax+'，不重复)'); return; }
+  bl.sort((a,b)=>a-b);
+  const rR = rd.map(n => rt(n)).join('');
+  const pR = rd.map(n => pt(n)).join('');
+  const rB = bl.map(n => rt(n)).join('');
+  const pB = bl.map(n => pt(n)).join('');
+  const zC = [0,0,0];
+  rd.forEach(n => zC[zn(n)]++);
+  const znS = zC.join('');
+  if (data.some(d => d.period === pv)) { alert('期号重复'); return; }
+  data.push({ period:pv, reds:rd, blues:bl, routeR:rR, parityR:pR, routeB:rB, parityB:pB, zone:znS, game:gk });
+  saveStatsData(data);
+  document.getElementById('sPeriod').value = '';
+  for (let i = 0; i < pk; i++) document.getElementById('sRed'+(i+1)).value = '';
+  for (let i = 0; i < bpk; i++) document.getElementById('sBlue'+(i+1)).value = '';
+  renderStats();
+});
+document.getElementById('btnClearData').addEventListener('click', () => { if (!confirm('确认清空所有统计数据？')) return; saveStatsData([]); renderStats(); });
+
+function renderStats() {
+document.getElementById('btnGenSample').addEventListener('click', () => { genSampleData(); });
+document.getElementById('btnPasteImport').addEventListener('click', () => { pasteAndFill(); });
+function pasteAndFill() {
+  navigator.clipboard.readText().then(text => {
+    if (!text.trim()) { showToast('剪贴板为空'); return; }
+    processClipboardText(text);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.placeholder = '粘贴号码，多行可一次导入...'; ta.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:340px;height:120px;padding:10px;border:2px solid #4361ee;border-radius:8px;font-size:14px;z-index:9999;resize:none';
+    ta.addEventListener('blur', () => { document.body.removeChild(ta); });
+    ta.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.ctrlKey) { const text = ta.value; document.body.removeChild(ta);
+        processClipboardText(text); }
+    });
+    document.body.appendChild(ta); ta.focus();
+    showToast('粘贴后按 Ctrl+Enter 确认');
+  });
+  function processClipboardText(text) {
+    if (!text.trim()) return;
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    const pk = c().pick, bpk = c().bPick;
+    const sets = [];
+    for (const line of lines) {
+      const nums = line.trim().replace(/[+|]/g, ' ').split(/\s+/).map(s => s.trim()).filter(s => s && /^\d+$/.test(s)).map(Number);
+      if (nums.length < pk + bpk) continue;
+      const reds = nums.slice(0, pk).sort((a,b)=>a-b);
+      const blues = nums.slice(pk).sort((a,b)=>a-b);
+      if (new Set(reds).size !== reds.length || new Set(blues).size !== blues.length) continue;
+      if (reds.some(n => n < 1 || n > G[gk].max) || blues.some(n => n < 1 || n > G[gk].bMax)) continue;
+      sets.push({reds, blues});
+    }
+    if (sets.length === 0) { showToast('未识别到有效号码'); return; }
+    if (sets.length === 1) {
+      for (let i = 0; i < pk; i++) document.getElementById('sRed'+(i+1)).value = String(sets[0].reds[i]).padStart(2,'0');
+      for (let i = 0; i < bpk; i++) document.getElementById('sBlue'+(i+1)).value = String(sets[0].blues[i]).padStart(2,'0');
+      showToast('已填入号码，确认后点击添加'); return;
+    }
+    if (!confirm('识别到 ' + sets.length + ' 组号码，是否全部导入统计？')) return;
+    const data = getStatsData();
+    for (const s of sets) {
+      data.push({
+        period: String(2026001 + Math.floor(Math.random() * 10000)),
+        reds: s.reds, blues: s.blues,
+        routeR: s.reds.map(n => rt(n)).join(''),
+        parityR: s.reds.map(n => pt(n)).join(''),
+        routeB: s.blues.map(n => rt(n)).join(''),
+        parityB: s.blues.map(n => pt(n)).join(''),
+        zone: (() => { const c = [0,0,0]; s.reds.forEach(n => c[zn(n)]++); return c.join(''); })(),
+        game: gk
+      });
+    }
+    saveStatsData(data); renderStats();
+    showToast('已导入 ' + sets.length + ' 组号码');
+  }
+}
+function genSampleData() {
+  const data = getStatsData();
+  if (data.length > 0 && !confirm('已有数据，追加示例？')) return;
+  const pk = G[gk].pick, bpk = G[gk].bPick, max = G[gk].max, bMax = G[gk].bMax;
+  for (let s = 0; s < 10; s++) {
+    const rd = [], bl = [];
+    const pool = Array.from({length:max}, (_,i)=>i+1);
+    for (let i = 0; i < pk; i++) { const idx = Math.floor(Math.random()*pool.length); rd.push(pool[idx]); pool.splice(idx,1); }
+    rd.sort((a,b)=>a-b);
+    const bpool = Array.from({length:bMax}, (_,i)=>i+1);
+    for (let i = 0; i < bpk; i++) { const idx = Math.floor(Math.random()*bpool.length); bl.push(bpool[idx]); bpool.splice(idx,1); }
+    bl.sort((a,b)=>a-b);
+    data.push({
+      period: String(2026001 + Math.floor(Math.random()*1000)),
+      reds: rd, blues: bl,
+      routeR: rd.map(n=>rt(n)).join(''), parityR: rd.map(n=>pt(n)).join(''),
+      routeB: bl.map(n=>rt(n)).join(''), parityB: bl.map(n=>pt(n)).join(''),
+      zone: (z=>{const c=[0,0,0];z.forEach(n=>c[zn(n)]++);return c.join('');})(rd),
+      game: gk
+    });
+  }
+  saveStatsData(data); renderStats(); showToast('已生成10期示例');
+}
+  const data = getStatsData();
+  document.getElementById('dataCount').textContent = data.length;
+  if (data.length === 0) {
+    ['redFreqGrid','blueFreqGrid','routeCombGrid','parityCombGrid','bRouteCombGrid','bParityCombGrid','zoneCombGrid'].forEach(id => document.getElementById(id).innerHTML = '');
+    document.getElementById('routeStatTable').innerHTML = ''; document.getElementById('bRouteStatTable').innerHTML = '';
+    document.getElementById('totalRedCount').textContent = '0'; document.getElementById('totalBlueCount').textContent = '0';
+    document.getElementById('totalRouteCount').textContent = '0'; document.getElementById('totalBRouteCount').textContent = '0';
+    document.getElementById('dataListContainer').innerHTML = '<div class=emp style=padding:16px;font-size:12px>暂无数据</div>';
+    return;
+  }
+  const rC = {}, bC = {};
+  for (let i = 1; i <= G[gk].max; i++) rC[i] = 0;
+  for (let i = 1; i <= G[gk].bMax; i++) bC[i] = 0;
+  const rCC = {}, pCC = {}, zCC = {}, bRCC = {}, bPCC = {};
+  const pR = Array.from({length: G[gk].pick}, () => ({0:0,1:0,2:0}));
+  const bPR = Array.from({length: G[gk].bPick}, () => ({0:0,1:0,2:0}));
+  let tR = 0, tB = 0, tBR = 0;
+  for (const d of data) {
+    for (const n of d.reds) { rC[n]++; tR++; }
+    for (const n of d.blues) { bC[n]++; tB++; }
+    rCC[d.routeR] = (rCC[d.routeR] || 0) + 1;
+    pCC[d.parityR] = (pCC[d.parityR] || 0) + 1;
+    zCC[d.zone] = (zCC[d.zone] || 0) + 1;
+    d.routeR.split('').forEach((v,i) => { if (i < G[gk].pick) pR[i][v]++; });
+    // Back area (蓝球/后区) stats
+    if (d.routeB) { bRCC[d.routeB] = (bRCC[d.routeB] || 0) + 1; d.routeB.split('').forEach((v,i) => { if (i < G[gk].bPick) bPR[i][v]++; }); tBR++; }
+    if (d.parityB) bPCC[d.parityB] = (bPCC[d.parityB] || 0) + 1;
+  }
+  document.getElementById('totalRedCount').textContent = tR;
+  document.getElementById('totalBlueCount').textContent = tB;
+  document.getElementById('totalRouteCount').textContent = tR;
+  document.getElementById('totalBRouteCount').textContent = tBR;
+  // Red frequency
+  const mR = Math.max(...Object.values(rC), 1);
+  document.getElementById('redFreqGrid').innerHTML = Object.entries(rC).sort((a,b)=>b[1]-a[1]).map(([n,c]) => `<div class=stat-item><span>${String(n).padStart(2,'0')}</span><span class=cnt>${c}次</span></div><div class=stat-bar style=grid-column:1/-1><div class=fill style=width:${c/mR*100}%></div></div>`).join('');
+  const mB = Math.max(...Object.values(bC), 1);
+  document.getElementById('blueFreqGrid').innerHTML = Object.entries(bC).sort((a,b)=>b[1]-a[1]).map(([n,c]) => `<div class=stat-item><span>${String(n).padStart(2,'0')}</span><span class=cnt>${c}次</span></div><div class=stat-bar style=grid-column:1/-1><div class=fill style=width:${c/mB*100}%></div></div>`).join('');
+  // Route table - front
+  let rTH = '<tr><th>位置</th><th>0路</th><th>1路</th><th>2路</th></tr>';
+  for (let i = 0; i < G[gk].pick; i++) rTH += `<tr><td>第${i+1}位</td><td>${pR[i][0]}次</td><td>${pR[i][1]}次</td><td>${pR[i][2]}次</td></tr>`;
+  document.getElementById('routeStatTable').innerHTML = rTH;
+  // Route table - back
+  let bRTH = '<tr><th>位置</th><th>0路</th><th>1路</th><th>2路</th></tr>';
+  for (let i = 0; i < G[gk].bPick; i++) bRTH += `<tr><td>第${i+1}位</td><td>${bPR[i][0]}次</td><td>${bPR[i][1]}次</td><td>${bPR[i][2]}次</td></tr>`;
+  document.getElementById('bRouteStatTable').innerHTML = bRTH;
+  // Combination grids
+  renderCombGrid('routeCombGrid', rCC);
+  renderCombGrid('parityCombGrid', pCC);
+  renderCombGrid('bRouteCombGrid', bRCC, 10);
+  renderCombGrid('bParityCombGrid', bPCC, 10);
+  renderCombGrid('zoneCombGrid', zCC);
+  // Data list
+  let dH = '<table><tr><th></th><th>期号</th><th>红球</th><th>蓝球</th><th>路数</th><th>奇偶</th><th>区间</th></tr>';
+  for (let i = data.length - 1; i >= 0; i--) {
+    const d = data[i];
+    dH += `<tr><td class=del data-idx=${i}>✕</td><td>${d.period}</td><td>${d.reds.join(',')}</td><td>${d.blues.join(',')}</td><td>${d.routeR}</td><td>${d.parityR}</td><td>${d.zone}</td></tr>`;
+  }
+  dH += '</table>';
+  document.getElementById('dataListContainer').innerHTML = dH;
+  document.querySelectorAll('#dataListContainer .del').forEach(e => { e.addEventListener('click', () => { const idx = parseInt(e.dataset.idx); const d = getStatsData(); if (idx >= 0 && idx < d.length) { d.splice(idx, 1); saveStatsData(d); renderStats(); } }); });
+}
+function renderCombGrid(id, map, limit) {
+  limit = limit || 20;
+  const entries = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0, limit);
+  const mx = Math.max(...entries.map(([,c])=>c), 1);
+  document.getElementById(id).innerHTML = entries.map(([pat,c]) => `<div class=stat-item><span>${pat}</span><span class=cnt>${c}次</span></div><div class=stat-bar style=grid-column:1/-1><div class=fill style=width:${c/mx*100}%></div></div>`).join('') || '<div style=font-size:12px;color:#999>暂无数据</div>';
+}
+
+// Init
+buildPickers();
+const rE = '002220'.split('').map(Number);
+document.querySelectorAll('#routePickers .pkr-row').forEach((g,i) => { const btns = g.querySelectorAll('.opts button'); btns.forEach(b => { if (parseInt(b.dataset.v) === rE[i]) b.classList.add('sel'); }); });
+const pE = ['奇','偶','偶','偶','偶','奇'];
+document.querySelectorAll('#parityPickers .pkr-row').forEach((g,i) => { const btns = g.querySelectorAll('.opts button'); btns.forEach(b => { if (b.dataset.v === pE[i]) b.classList.add('sel'); }); });
+swG('ssq');
+initZoneInputs(3);
+const zipts = document.querySelectorAll('.zone-ipt');
+if (zipts.length >= 1) zipts[0].value = '312';
+if (zipts.length >= 2) zipts[1].value = '321';
+if (zipts.length >= 3) zipts[2].value = '231';
+</script></body></html>
