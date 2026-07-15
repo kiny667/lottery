@@ -181,7 +181,7 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>每位路数(0/1/2)出现次数</div><table class=st id=bRouteStatTable></table></div>
 <div style=margin-top:10px><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>路数组合出现次数(Top 10)</div><div class=stat-grid id=bRouteCombGrid></div></div>
 </div>
-<div class=sec style=margin-top:14px><div class=sec-lbl>后区奇偶统计 <small>蓝球/后区</small></div>
+<div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>每位奇偶出现次数</div><table class=st id=bParityStatTable></table></div>
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>奇偶组合出现次数(Top 10)</div><div class=stat-grid id=bParityCombGrid></div></div>
 </div>
 <div class=sec style=margin-top:14px><div class=sec-lbl>区间分布统计</div>
@@ -700,10 +700,12 @@ function genSampleData() {
   let rTH = '<tr><th>位置</th><th>0路</th><th>1路</th><th>2路</th></tr>';
   for (let i = 0; i < G[gk].pick; i++) rTH += `<tr><td>第${i+1}位</td><td>${pR[i][0]}次</td><td>${pR[i][1]}次</td><td>${pR[i][2]}次</td></tr>`;
   document.getElementById('routeStatTable').innerHTML = rTH;
+  var pTH = "<tr><th>位置</th><th>奇</th><th>偶</th></tr>"; for (var i = 0; i < G[gk].pick; i++) pTH += "<tr><td>第"+(i+1)+"位</td><td>"+pP[i]["奇"]+"次</td><td>"+pP[i]["偶"]+"次</td></tr>"; document.getElementById("parityStatTable").innerHTML = pTH;
   // Route table - back
   let bRTH = '<tr><th>位置</th><th>0路</th><th>1路</th><th>2路</th></tr>';
   for (let i = 0; i < G[gk].bPick; i++) bRTH += `<tr><td>第${i+1}位</td><td>${bPR[i][0]}次</td><td>${bPR[i][1]}次</td><td>${bPR[i][2]}次</td></tr>`;
   document.getElementById('bRouteStatTable').innerHTML = bRTH;
+  var bPTH = "<tr><th>位置</th><th>奇</th><th>偶</th></tr>"; for (var i = 0; i < G[gk].bPick; i++) bPTH += "<tr><td>第"+(i+1)+"位</td><td>"+bPP[i]["奇"]+"次</td><td>"+bPP[i]["偶"]+"次</td></tr>"; document.getElementById("bParityStatTable").innerHTML = bPTH;
   // Combination grids
   renderCombGrid('routeCombGrid', rCC);
   renderCombGrid('parityCombGrid', pCC);
