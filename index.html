@@ -3,18 +3,18 @@
 <title>彩票选号助手</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh;display:flex;justify-content:center;padding:24px 12px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:#f0f4f8;color:#1a1a2e;min-height:100vh;display:flex;justify-content:center;padding:24px 12px}
 .app{max-width:960px;width:100%}
 h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.card{background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:20px;margin-bottom:16px}
-.tab-bar{display:flex;gap:0;margin-bottom:16px;background:#f0f2f5;border-radius:8px;padding:3px}
-.tab-bar button{flex:1;padding:9px 14px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:#666;transition:all .2s}
-.tab-bar button.on{background:#e63946;color:#fff}
+.card{background:#fff;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.05);padding:20px;margin-bottom:16px;transition:box-shadow .2s}
+.tab-bar{display:flex;gap:0;margin-bottom:16px;background:#e2e8f0;border-radius:10px;padding:3px}
+.tab-bar button{flex:1;padding:9px 14px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all .2s}
+.tab-bar button.on{background:#e63946;color:#fff;box-shadow:0 2px 8px rgba(230,57,70,.3)}
 .tab-con{display:none}.tab-con.on{display:block}
 .game-sw{display:flex;gap:0;margin-bottom:16px;background:#f0f2f5;border-radius:8px;padding:3px}
 .game-sw button{flex:1;padding:9px 14px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:#666;transition:all .2s}
-.game-sw button.on{background:#1a2d7a;color:#fff;box-shadow:0 2px 12px rgba(26,45,122,.4);font-weight:700}
-.game-sw button[data-game=dlt].on{background:#8b1a24;font-weight:700;box-shadow:0 2px 12px rgba(139,26,36,.4)}
+.game-sw button.on{background:#1a2d7a;color:#fff;box-shadow:0 2px 12px rgba(26,45,122,.3);font-weight:700}
+.game-sw button[data-game=dlt].on{background:#8b1a24;font-weight:700;box-shadow:0 2px 12px rgba(139,26,36,.3)}
 .sec{margin-bottom:14px}.sec:last-of-type{margin-bottom:0}
 .sec .sec-lbl{font-size:13px;font-weight:600;color:#333;margin-bottom:8px}
 .sec .sec-lbl small{font-weight:400;color:#999;font-size:12px}
@@ -40,7 +40,7 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
 .z-zone .zi-add:hover{border-color:#4361ee;color:#4361ee;background:#f8f9ff}
 .err-msg{font-size:12px;color:#e63946;min-height:16px}
 .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
-.btn{padding:8px 20px;border:none;border-radius:5px;font-size:13px;font-weight:500;cursor:pointer;transition:background .2s}
+.btn{padding:8px 20px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
 .btn:active{transform:scale(.97)}
 .btn-pri{background:#4361ee;color:#fff}.btn-pri:hover{background:#3651d4}
 .btn-sec{background:#e8e8e8;color:#333}.btn-sec:hover{background:#d9d9d9}
@@ -54,10 +54,10 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
 .res-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px;margin-top:10px}
 .res-item{display:flex;align-items:center;gap:4px;padding:6px 10px;background:#f8f9fc;border-radius:5px;font-size:13px;font-family:"SF Mono","Fira Code","Consolas",monospace;transition:background .15s;flex-wrap:wrap}
 .res-item:hover{background:#eef0f7}
-.ball{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:12px;font-weight:600;color:#fff;flex-shrink:0}
-.ball.z1{background:#4361ee}.ball.z2{background:#2ec4b6}.ball.z3{background:#e63946}
-.ball.blue{background:#f0a030}
-.emp{text-align:center;padding:30px 16px;color:#999;font-size:13px}
+.ball{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 2px 4px rgba(0,0,0,.15)}
+.ball.z1{background:linear-gradient(145deg,#4f6ff0,#3651d4)}.ball.z2{background:linear-gradient(145deg,#3dd4c6,#25a99d)}.ball.z3{background:linear-gradient(145deg,#f04f5a,#d12e3b)}
+.ball.blue{background:linear-gradient(145deg,#f5b44a,#d8902a)}
+.emp{text-align:center;padding:50px 16px;color:#999;font-size:13px}
 .emp .icon{font-size:36px;margin-bottom:10px}
 .legend{display:flex;gap:12px;font-size:12px;color:#666;margin-top:10px;flex-wrap:wrap}
 .legend .ball{width:14px;height:14px;font-size:0}
@@ -84,13 +84,13 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
 .dl .del{cursor:pointer;color:#e63946;font-weight:bold}
 .sl{font-size:13px;color:#555;margin-bottom:8px}
 .sl .nm{font-weight:600;color:#4361ee}
-.sav-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;font-family:"SF Mono",Consolas,monospace;flex-wrap:wrap}
-.sav-row:last-child{border-bottom:none}
+.sav-row{display:flex;flex-direction:column;gap:6px;padding:12px 14px;margin-bottom:6px;border-radius:8px;background:#fafbfc;border:1px solid #e8ecf0;font-size:12px;font-family:"SF Mono",Consolas,monospace;transition:box-shadow .15s}.sav-row:hover{box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.sav-row:last-child{margin-bottom:0}.sav-info{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .sav-row .s-type{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:600}.sav-row .s-type.t-dlt{background:#fce4e4;color:#8b1a24}.sav-row .s-type.t-ssq{background:#e4e8fc;color:#1a2d7a}
 .sav-row .s-time{color:#999;font-size:11px}
-.sav-acts{display:flex;gap:4px;margin-left:auto}
+.sav-acts{display:flex;gap:6px;justify-content:flex-end;padding-top:6px;margin-top:4px;border-top:1px solid #e8ecf0}
 .sav-acts .btn{padding:3px 8px;font-size:11px;border-radius:3px}
-.sav-empty{text-align:center;padding:30px 16px;color:#999;font-size:13px}
+.sav-empty{text-align:center;padding:50px 16px;color:#999;font-size:13px}
 .fn{text-align:center;font-size:11px;color:#bbb;margin-top:20px}
 @media(max-width:480px){
   .pkr-row .opts button{width:32px;height:30px;font-size:11px}
@@ -510,7 +510,7 @@ function renderSaved() {
   c.innerHTML = saved.map(item => {
     const tName = item.type==='dlt'?'大乐透':'双色球', tCls = item.type==='dlt'?'t-dlt':'t-ssq';
     const rows = item.numbers.map(d => d.r.map(n=>String(n).padStart(2,'0')).join(' ')+' + '+d.b.map(n=>String(n).padStart(2,'0')).join(' ')).join(' | ');
-    return `<div class=sav-row><span class="s-type ${tCls}">${tName}</span><span>${rows}</span><span class=s-time>${item.time}</span><div class=sav-acts><button class="btn btn-pri" onclick="copySaved('${item.id}')">📋</button><button class="btn btn-dgr" onclick="deleteSaved('${item.id}')">✕</button></div></div>`;
+    return `<div class=sav-row><div class=sav-info><span class="s-type ${tCls}">${tName}</span><span>${rows}</span><span class=s-time>${item.time}</span></div><div class=sav-acts><button class="btn btn-pri" onclick="copySaved('${item.id}')">📋</button><button class="btn btn-dgr" onclick="deleteSaved('${item.id}')">✕</button></div></div>`;
   }).join('');
 }
 function copySaved(id) {
