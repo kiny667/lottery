@@ -717,6 +717,7 @@ function genSampleData() {
   for (let i = 0; i < sorted.length; i++) {
     const d = sorted[i].item;
     const oi = sorted[i].origIdx;
+    dH += `<tr><td class=del data-idx=${oi}>✕</td><td>${d.period}</td><td>${d.reds.join(',')}</td><td>${d.blues.join(',')}</td><td>${d.routeR}</td><td>${d.parityR}</td><td>${d.zone}</td></tr>`;
   }
   dH += '</table>';
   document.getElementById('dataListContainer').innerHTML = dH;
