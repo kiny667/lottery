@@ -157,7 +157,6 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
 <div class=inp-row><label>蓝球</label><input id=sBlue1 class=nl placeholder=蓝1><input id=sBlue2 class=nl placeholder=蓝2><span style=font-size:11px;color:#999> 输入后自动分析</span></div>
 <div class=acts>
   <button class="btn btn-pri" id=btnAddData>添加</button>
- <button class="btn btn-dgr" id=btnClearData>清空所有数据</button>
   <button class="btn btn-sec" id=btnGenSample>生成示例(10期)</button>
   <button class="btn btn-warn" id=btnPasteImport style=font-size:12px;padding:4px 12px>📋 导入号码</button>
  <span style="margin-left:auto;font-size:12px;color:#999">已录 <span class=num id=dataCount>0</span> 期</span>
@@ -189,7 +188,7 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
 <div class=sec style=margin-top:14px><div class=sec-lbl>区间分布统计</div>
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>区间组合出现次数(Top 20)</div><div class=stat-grid id=zoneCombGrid></div></div>
 </div>
-<div class=sec style=margin-top:14px><div class=sec-lbl>已录入数据</div>
+<div class=sec-lbl>已录入数据 <button style=margin-left:8px;cursor:pointer;font-size:11px;border:none;border-radius:4px;padding:2px 6px;background:#e8e8e8;color:#333 onclick="sortAsc=!sortAsc;renderStats();">期号 ↓</button></div>
   <div class=dl id=dataListContainer><div class=emp style=padding:16px;font-size:12px>暂无数据</div></div>
 </div>
 </div>
@@ -405,6 +404,7 @@ function doFilter() {
 }
 let lr = [], cp = 0;
 const PS = 50;
+let sortAsc = false;
 function renderRes(r, pg) {
   lr = r; const total = r.length, tp = Math.ceil(total / PS) || 1;
   if (pg >= tp) pg = tp - 1; if (pg < 0) pg = 0; cp = pg;
@@ -581,7 +581,6 @@ document.getElementById('btnAddData').addEventListener('click', () => {
   for (let i = 0; i < bpk; i++) document.getElementById('sBlue'+(i+1)).value = '';
   renderStats();
 });
-document.getElementById('btnClearData').addEventListener('click', () => { if (!confirm('确认清空所有统计数据？')) return; saveStatsData([]); renderStats(); });
 
 function renderStats() {
 document.getElementById('btnGenSample').addEventListener('click', () => { genSampleData(); });
@@ -714,10 +713,13 @@ function genSampleData() {
   renderCombGrid('bParityCombGrid', bPCC, 10);
   renderCombGrid('zoneCombGrid', zCC);
   // Data list
+  let sorted = data.map(function(item, idx){return {item:item, origIdx:idx};});
+  sorted.sort(function(a,b){return sortAsc ? String(a.item.period).localeCompare(b.item.period) : String(b.item.period).localeCompare(a.item.period);});
   let dH = '<table><tr><th></th><th>期号</th><th>红球</th><th>蓝球</th><th>路数</th><th>奇偶</th><th>区间</th></tr>';
-  for (let i = data.length - 1; i >= 0; i--) {
-    const d = data[i];
-    dH += `<tr><td class=del data-idx=${i}>✕</td><td>${d.period}</td><td>${d.reds.join(',')}</td><td>${d.blues.join(',')}</td><td>${d.routeR}</td><td>${d.parityR}</td><td>${d.zone}</td></tr>`;
+  for (let i = 0; i < sorted.length; i++) {
+    const d = sorted[i].item;
+    const oi = sorted[i].origIdx;
+    dH += `<tr><td class=del data-idx=${oi}>✕</td><td>${d.period}</td><td>${d.reds.join(',')}</td><td>${d.blues.join(',')}</td><td>${d.routeR}</td><td>${d.parityR}</td><td>${d.zone}</td></tr>`;
   }
   dH += '</table>';
   document.getElementById('dataListContainer').innerHTML = dH;
