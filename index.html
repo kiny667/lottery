@@ -174,9 +174,10 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
 <div style=margin-top:10px><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>路数组合出现次数(Top 20)</div><div class=stat-grid id=routeCombGrid></div></div>
 </div>
 <div class=sec style=margin-top:14px><div class=sec-lbl>奇偶统计 <small>红区</small></div>
+<div class=sec style=margin-top:14px><div class=sec-lbl>奇偶统计 <small>红区</small></div>
+<div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>每位奇偶出现次数</div><table class=st id=parityStatTable></table></div>
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>奇偶组合出现次数(Top 20)</div><div class=stat-grid id=parityCombGrid></div></div>
 </div>
-<div class=sec style=margin-top:14px><div class=sec-lbl>后区路数统计 <small>蓝球/后区</small></div>
 <div class=sl>出现总次数 <span class=nm id=totalBRouteCount>0</span></div>
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>每位路数(0/1/2)出现次数</div><table class=st id=bRouteStatTable></table></div>
 <div style=margin-top:10px><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>路数组合出现次数(Top 10)</div><div class=stat-grid id=bRouteCombGrid></div></div>
@@ -579,10 +580,12 @@ document.getElementById('btnAddData').addEventListener('click', () => {
   for (let i = 0; i < bpk; i++) document.getElementById('sBlue'+(i+1)).value = '';
   renderStats();
 });
-
 function renderStats() {
+if (!window._statsListenersAdded) {
+  window._statsListenersAdded = true;
 document.getElementById('btnGenSample').addEventListener('click', () => { genSampleData(); });
 document.getElementById('btnPasteImport').addEventListener('click', () => { pasteAndFill(); });
+}
 function pasteAndFill() {
   navigator.clipboard.readText().then(text => {
     if (!text.trim()) { showToast('剪贴板为空'); return; }
@@ -662,7 +665,7 @@ function genSampleData() {
   const data = getStatsData();
   document.getElementById('dataCount').textContent = data.length;
   if (data.length === 0) {
-    ['redFreqGrid','blueFreqGrid','routeCombGrid','parityCombGrid','bRouteCombGrid','bParityCombGrid','zoneCombGrid'].forEach(id => document.getElementById(id).innerHTML = '');
+    ['redFreqGrid','blueFreqGrid','routeCombGrid','parityCombGrid','parityStatTable','bRouteCombGrid','bParityCombGrid','bParityStatTable','zoneCombGrid'].forEach(id => document.getElementById(id).innerHTML = '');
     document.getElementById('routeStatTable').innerHTML = ''; document.getElementById('bRouteStatTable').innerHTML = '';
     document.getElementById('totalRedCount').textContent = '0'; document.getElementById('totalBlueCount').textContent = '0';
     document.getElementById('totalRouteCount').textContent = '0'; document.getElementById('totalBRouteCount').textContent = '0';
@@ -676,6 +679,8 @@ function genSampleData() {
   const pR = Array.from({length: G[gk].pick}, () => ({0:0,1:0,2:0}));
   const bPR = Array.from({length: G[gk].bPick}, () => ({0:0,1:0,2:0}));
   let tR = 0, tB = 0, tBR = 0;
+  const pP = Array.from({length: G[gk].pick}, () => ({'奇':0,'偶':0}));
+  const bPP = Array.from({length: G[gk].bPick}, () => ({'奇':0,'偶':0}));
   for (const d of data) {
     for (const n of d.reds) { rC[n]++; tR++; }
     for (const n of d.blues) { bC[n]++; tB++; }
@@ -685,9 +690,9 @@ function genSampleData() {
     d.routeR.split('').forEach((v,i) => { if (i < G[gk].pick) pR[i][v]++; });
     // Back area (蓝球/后区) stats
     if (d.routeB) { bRCC[d.routeB] = (bRCC[d.routeB] || 0) + 1; d.routeB.split('').forEach((v,i) => { if (i < G[gk].bPick) bPR[i][v]++; }); tBR++; }
-    if (d.parityB) bPCC[d.parityB] = (bPCC[d.parityB] || 0) + 1;
+    d.parityR.split('').forEach((v,i) => { if (i < G[gk].pick) pP[i][v]++; });
+    if (d.parityB) { bPCC[d.parityB] = (bPCC[d.parityB] || 0) + 1; d.parityB.split('').forEach((v,i) => { if (i < G[gk].bPick) bPP[i][v]++; }); }
   }
-  document.getElementById('totalRedCount').textContent = tR;
   document.getElementById('totalBlueCount').textContent = tB;
   document.getElementById('totalRouteCount').textContent = tR;
   document.getElementById('totalBRouteCount').textContent = tBR;
