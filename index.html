@@ -84,13 +84,13 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
 .dl .del{cursor:pointer;color:#e63946;font-weight:bold}
 .sl{font-size:13px;color:#555;margin-bottom:8px}
 .sl .nm{font-weight:600;color:#4361ee}
-.sav-row{display:flex;flex-direction:column;gap:6px;padding:10px 12px;margin-bottom:6px;border:1px solid #eee;border-radius:6px;font-size:12px;font-family:"SF Mono",Consolas,monospace}.sav-row:last-child{margin-bottom:0}
-
+.sav-row{display:flex;flex-direction:column;gap:6px;padding:10px 12px;margin-bottom:6px;border:1px solid #eee;border-radius:6px;font-size:12px;font-family:"SF Mono",Consolas,monospace}
+.sav-row:last-child{margin-bottom:0}
 .sav-row .s-type{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:600}.sav-row .s-type.t-dlt{background:#fce4e4;color:#8b1a24}.sav-row .s-type.t-ssq{background:#e4e8fc;color:#1a2d7a}
 .sav-row .s-time{color:#999;font-size:11px}
-.sav-acts{display:flex;gap:4px}
+.sav-acts{display:flex;gap:4px}.sav-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;font-family:"SF Mono",Consolas,monospace;line-height:1.6}.sav-bottom{display:flex;align-items:center;justify-content:space-between;padding-top:6px;margin-top:6px;border-top:1px solid #eee;font-size:12px}
 .sav-acts .btn{padding:3px 8px;font-size:11px;border-radius:3px}
-#saveListContainer{max-width:480px;margin:0 auto}.sav-empty{text-align:center;padding:50px 16px;color:#999;font-size:13px}
+.sav-empty{text-align:center;padding:30px 16px;color:#999;font-size:13px}
 .fn{text-align:center;font-size:11px;color:#bbb;margin-top:20px}
 @media(max-width:480px){
   .pkr-row .opts button{width:32px;height:30px;font-size:11px}
@@ -99,7 +99,7 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
   .inp-row input{width:50px}
   .stat-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
 }
-.sav-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;font-family:"SF Mono",Consolas,monospace;line-height:1.6}.sav-bottom{display:flex;align-items:center;justify-content:space-between;padding-top:6px;margin-top:6px;border-top:1px solid #eee;font-size:12px}.tab-con#tabSave .card{max-width:520px;margin:20px auto}</style></head><body><div class=app>
+</style></head><body><div class=app>
 <h1>彩票选号助手</h1>
 <div class=game-sw id=gameSwitch><button class=on data-game=ssq>双色球</button><button data-game=dlt>大乐透</button></div>
 <div class=tab-bar id=tabBar><button class=on data-tab=filter>筛选</button><button data-tab=stats>统计</button><button data-tab=save>记录</button></div>
@@ -195,7 +195,7 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
 </div>
 <div class="tab-con" id=tabSave>
 <div class=card><div class=sec>
-<div style=text-align:center;margin-bottom:10px>
+<div style=display:flex;justify-content:space-between;align-items:center;margin-bottom:10px>
   <div class=sec-lbl style=margin:0>已保存的号码</div>
   <button class="btn btn-dgr" id=clearAllSaved style=font-size:12px;padding:4px 12px>清空全部</button>
 </div>
@@ -510,7 +510,7 @@ function renderSaved() {
   c.innerHTML = saved.map(item => {
     const tName = item.type==='dlt'?'大乐透':'双色球', tCls = item.type==='dlt'?'t-dlt':'t-ssq';
     const rows = item.numbers.map(d => d.r.map(n=>String(n).padStart(2,'0')).join(' ')+' + '+d.b.map(n=>String(n).padStart(2,'0')).join(' ')).join(' | ');
-    return `<div class=sav-row><div class=sav-main><span class="s-type ${tCls}">${tName}</span><span>${rows}</span></div><div class=sav-bottom><span class=s-time>${item.time}</span><div class=sav-acts><button class="btn btn-xs btn-pri" onclick="copySaved('${item.id}')">📋</button><button class="btn btn-dgr" onclick="deleteSaved('${item.id}')">✕</button></div></div>`;
+    return `<div class=sav-row><div class=sav-main><span class="s-type ${tCls}">${tName}</span><span>${rows}</span></div><div class=sav-bottom><span class=s-time>${item.time}</span><div class=sav-acts><button class="btn btn-pri" onclick="copySaved('${item.id}')">📋</button><button class="btn btn-dgr" onclick="deleteSaved('${item.id}')">✕</button></div></div>`;
   }).join('');
 }
 function copySaved(id) {
@@ -719,7 +719,6 @@ function genSampleData() {
   for (let i = 0; i < sorted.length; i++) {
     const d = sorted[i].item;
     const oi = sorted[i].origIdx;
-    dH += `<tr><td class=del data-idx=${oi}>✕</td><td>${d.period}</td><td>${d.reds.join(',')}</td><td>${d.blues.join(',')}</td><td>${d.routeR}</td><td>${d.parityR}</td><td>${d.zone}</td></tr>`;
   }
   dH += '</table>';
   document.getElementById('dataListContainer').innerHTML = dH;
