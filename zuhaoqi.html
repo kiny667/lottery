@@ -125,6 +125,14 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
 </div>
 
 <div class=sec>
+<div class=sec>
+<div class=sec-hdr>③ 蓝区路数 <span class=hint>后区每位除3余数</span></div>
+<div class=pkr-col id=bRoutePickers></div>
+</div>
+<div class=sec>
+<div class=sec-hdr>④ 蓝区奇偶</div>
+<div class=pkr-col id=bParityPickers></div>
+</div>
 <div class=sec-hdr>区间分布 <span class=hint>输入3位数，如231=2:3:1，可添加多个</span></div>
 <div class=presets id=znPresets></div>
 <div style=display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px>
@@ -200,9 +208,9 @@ const PAGE=50;
 
 // ===== BUILD PICKERS (路数 & 奇偶) =====
 function buildPickers(){
-  const pk=ga().rN;
+  const pk=ga().rN, bpk=ga().bN;
   ['route','parity'].forEach(t=>{
-    const el=document.getElementById(t+'Pickers'); el.innerHTML='';
+    const el=document.getElementById(t+"Pickers"); el.innerHTML="";
     const vv=t==='route'?['0','1','2']:['奇','偶'];
     for(let i=0;i<pk;i++){
       const row=document.createElement('div'); row.className='pkr-row';
@@ -212,9 +220,29 @@ function buildPickers(){
       vv.forEach(v=>{
         const b=document.createElement('button');
         b.dataset.v=v; b.textContent=v;
-        b.addEventListener('click',()=>{
+        b.addEventListener("click",()=>{
           b.classList.toggle('sel');
           if(t==='route'){b.classList.toggle('r1',b.classList.contains('sel')&&v==='1');b.classList.toggle('r2',b.classList.contains('sel')&&v==='2');}
+        });
+        opts.appendChild(b);
+      });
+      row.appendChild(opts); el.appendChild(row);
+    }
+  });
+  ['bRoute','bParity'].forEach(t=>{
+    const el=document.getElementById(t+"Pickers"); el.innerHTML="";
+    const vv=t==='bRoute'?['0','1','2']:['奇','偶'];
+    for(let i=0;i<bpk;i++){
+      const row=document.createElement('div'); row.className='pkr-row';
+      const lbl=document.createElement('span'); lbl.className='pl'; lbl.textContent=i+1;
+      row.appendChild(lbl);
+      const opts=document.createElement('div'); opts.className='opts';
+      vv.forEach(v=>{
+        const b=document.createElement('button');
+        b.dataset.v=v; b.textContent=v;
+        b.addEventListener("click",()=>{
+          b.classList.toggle('sel');
+          if(t==='bRoute'){b.classList.toggle('r1',b.classList.contains('sel')&&v==='1');b.classList.toggle('r2',b.classList.contains('sel')&&v==='2');}
         });
         opts.appendChild(b);
       });
@@ -234,6 +262,8 @@ function getPat(id){
 }
 function getRoutePat(){return getPat('routePickers');}
 function getParityPat(){return getPat('parityPickers');}
+function getBRoutePat(){return getPat("bRoutePickers");}
+function getBParityPat(){return getPat("bParityPickers");}
 
 // ===== ZONE PATTERNS =====
 function renderZnPresets(){
@@ -306,8 +336,8 @@ function doFilter(){
   const err=document.getElementById('errMsg'); err.textContent='';
   const st=document.getElementById('statusBar');
   const n=ga().rN;
-  const rp=getRoutePat(), pp=getParityPat();
-  if(!rp&&!pp&&zonePatterns.length===0&&selInc.length===0&&selExc.length===0){
+  const rp=getRoutePat(), pp=getParityPat(), brp=getBRoutePat(), bpp=getBParityPat();
+  if(!rp&&!pp&&!brp&&!bpp&&zonePatterns.length===0&&selInc.length===0&&selExc.length===0){
     err.textContent='请至少选择一项筛选条件'; return;
   }
   if(selInc.length+selExc.length>ga().rM){err.textContent='必选+排除号码不能超过总号码数';return;}
@@ -340,7 +370,16 @@ function doFilter(){
   }
   const bPool=[];
   for(let i=1;i<=ga().bM;i++) bPool.push(i);
-  const blueCombos=[...combos(bPool,ga().bN)];
+  let blueCombos=[...combos(bPool,ga().bN)];
+  if(brp||bpp){
+    blueCombos=blueCombos.filter(bc=>{
+      for(let i=0;i<bc.length;i++){
+        if(brp&&brp[i]&&!brp[i].includes(String(rt(bc[i])))) return false;
+        if(bpp&&bpp[i]&&!bpp[i].includes(od(bc[i]))) return false;
+      }
+      return true;
+    });
+  }
   const allResults=[];
   for(const red of redResults){
     for(const bc of blueCombos){
@@ -403,7 +442,7 @@ function checkCombo(arr,rp,pp,zps){
 function doClear(){
   selInc=[];selExc=[];zonePatterns=[];results=[];curPage=0;
   // Reset pickers: clear all selections
-  document.querySelectorAll('#routePickers .opts button,#parityPickers .opts button').forEach(b=>{b.classList.remove('sel','r1','r2');});
+  document.querySelectorAll('#routePickers .opts button,#parityPickers .opts button,#bRoutePickers .opts button,#bParityPickers .opts button').forEach(b=>{b.classList.remove('sel','r1','r2');});
   renderNums(); renderZoneTags();
   document.getElementById('statusBar').textContent='设置条件后点击「筛选号码」';
   document.getElementById('resArea').innerHTML='<div class=empty><div class=ico>🎲</div><div>设置条件后点击筛选</div></div>';
