@@ -422,3 +422,441 @@ render();
 </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset=UTF-8>
+<meta name=viewport content="width=device-width,initial-scale=1.0">
+<title>彩票筛选器</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f0f2f5;--card:#fff;--text:#1a1a2e;--text2:#555;--text3:#999;--pri:#4361ee;--pri-hover:#3651d4;--red:#e63946;--red-hover:#c9303e;--amber:#f0a030;--green:#2ec4b6;--border:#d9d9d9;--radius:8px;--shadow:0 1px 3px rgba(0,0,0,.08)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{max-width:880px;margin:0 auto;padding:20px 16px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+header h1{font-size:20px;font-weight:700;display:flex;align-items:center;gap:6px}
+header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
+.gs{display:flex;gap:0;background:var(--bg);border-radius:var(--radius);padding:3px;border:1px solid var(--border)}
+.gs button{padding:7px 18px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:all .2s}
+.gs button.on{background:var(--pri);color:#fff;box-shadow:0 2px 8px rgba(67,97,238,.35)}
+.gs button[data-g=dlt].on{background:var(--red);box-shadow:0 2px 8px rgba(230,57,70,.35)}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;margin-bottom:12px}
+.sec{margin-bottom:14px}.sec:last-of-type{margin-bottom:0}
+.sec-hdr{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sec-hdr .hint{font-weight:400;color:var(--text3);font-size:11px}
+.presets{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.presets button{padding:4px 12px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;background:#fff;color:var(--text2);transition:all .15s}
+.presets button:hover{border-color:var(--pri);color:var(--pri)}
+.presets button.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.diy{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 10px;background:#f8f9fc;border-radius:5px;font-size:12px}
+.diy .dl{color:var(--text3);font-size:11px}
+.diy input{padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:13px;width:46px;text-align:center;outline:none}
+.diy input:focus{border-color:var(--pri)}
+.num-panel{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;padding:8px 10px;background:#f8f9fc;border-radius:5px;max-height:160px;overflow-y:auto}
+.np{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;color:var(--text);user-select:none}
+.np:hover{border-color:var(--pri);transform:scale(1.06)}
+.np.inc{border-color:var(--pri);background:var(--pri);color:#fff}
+.np.exc{border-color:var(--red);background:var(--red);color:#fff;opacity:.7;text-decoration:line-through}
+.nctrl{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.nctrl input{padding:5px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;width:60px;outline:none;text-align:center}
+.nctrl input:focus{border-color:var(--pri)}
+.nctrl button{padding:4px 12px;border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;background:#fff;color:var(--text2)}
+.nctrl button:hover{border-color:var(--pri);color:var(--pri)}
+.acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}
+.btn{padding:8px 22px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:5px}
+.btn:active{transform:scale(.97)}
+.btn-pri{background:var(--pri);color:#fff}.btn-pri:hover{background:var(--pri-hover)}
+.btn-sec{background:#e8e8e8;color:var(--text2)}.btn-sec:hover{background:#d9d9d9}
+.btn-sm{padding:5px 12px;font-size:12px;border-radius:4px}
+.status{font-size:12px;color:var(--text2);margin-top:8px;min-height:20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.status .nm{font-weight:700;color:var(--pri);font-size:14px}
+.status .cst{color:var(--red);font-weight:600}
+.err{color:var(--red);font-size:12px;min-height:16px;margin-top:4px}
+.res-list{display:flex;flex-direction:column;gap:3px;max-height:400px;overflow-y:auto}
+.ri{display:flex;align-items:center;gap:5px;padding:5px 8px;background:#f8f9fc;border-radius:4px;font-size:12px;font-family:"SF Mono","Fira Code","Consolas",monospace}
+.ri:hover{background:#eef0f7}
+.ri .ix{color:var(--text3);min-width:20px;text-align:right;font-size:11px}
+.rb{display:inline-flex;width:24px;height:24px;border-radius:50%;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.rb.r1{background:var(--red)}.rb.r2{background:var(--pri)}.rb.r3{background:var(--amber)}.rb.bb{background:var(--pri)}.rb.pl{background:transparent;color:var(--text3);width:auto;font-size:12px}
+.empty{text-align:center;padding:32px 12px;color:var(--text3);font-size:13px}
+.empty .ico{font-size:28px;margin-bottom:6px}
+.pg{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pg button{padding:4px 10px;border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;background:#fff;color:var(--text2)}
+.pg button:disabled{opacity:.4;cursor:default}
+.pg button:hover:not(:disabled){border-color:var(--pri);color:var(--pri)}
+.pg .pi{font-size:11px;color:var(--text3)}
+.fn{text-align:center;font-size:11px;color:#ccc;margin-top:20px}
+@media(max-width:480px){
+  .app{padding:12px 8px}.card{padding:12px 14px}
+  .np{width:30px;height:30px;font-size:11px}
+  .diy{font-size:11px;padding:5px 8px}
+  header h1{font-size:17px}
+}
+</style>
+</head>
+<body>
+<div class=app>
+<header>
+<h1>彩票筛选器 <small>奇偶 · 路数 · 区间 · 号码</small></h1>
+<div class=gs id=gs><button class=on data-g=ssq>双色球</button><button data-g=dlt>大乐透</button></div>
+</header>
+
+<div class=card>
+<div class=sec>
+<div class=sec-hdr>奇偶比 <span class=hint>奇数个数 : 偶数个数</span></div>
+<div class=presets id=opPresets></div>
+<div class=diy><span class=dl>自定义</span> 奇数 <input type=number id=opOdd min=0 max=6 value=3> 个 · 偶数 <input type=number id=opEven min=0 max=6 value=3> 个</div>
+</div>
+
+<div class=sec>
+<div class=sec-hdr>路数分布 <span class=hint>每位除3余数组合</span></div>
+<div class=presets id=rtPresets></div>
+<div class=diy><span class=dl>自定义</span> 0路 <input type=number id=rt0 min=0 max=6 value=2> 个 · 1路 <input type=number id=rt1 min=0 max=6 value=2> 个 · 2路 <input type=number id=rt2 min=0 max=6 value=2> 个</div>
+</div>
+
+<div class=sec>
+<div class=sec-hdr>区间分布 <span class=hint>一区 : 二区 : 三区</span></div>
+<div class=presets id=znPresets></div>
+<div class=diy><span class=dl>自定义</span> 一区 <input type=number id=zn0 min=0 max=6 value=2> 个 · 二区 <input type=number id=zn1 min=0 max=6 value=2> 个 · 三区 <input type=number id=zn2 min=0 max=6 value=2> 个</div>
+</div>
+
+<div class=sec>
+<div class=sec-hdr>号码 <span class=hint>点击选中（必出）或排除</span></div>
+<div class=nctrl>
+<button id=toggleInc onclick="toggleMode()" style="background:var(--pri);color:#fff;border-color:var(--pri)">✓ 必选</button>
+<button id=toggleExc onclick="toggleMode()">✕ 排除</button>
+<button onclick="clearNumSel()">清空</button>
+<button onclick="quickOdd()">全奇</button>
+<button onclick="quickEven()">全偶</button>
+</div>
+<div class=num-panel id=numPanel></div>
+</div>
+</div>
+
+<div class=card>
+<div class=acts>
+<button class="btn btn-pri" id=btnFilter>筛选号码</button>
+<button class="btn btn-sec" id=btnClear>清空条件</button>
+</div>
+<div class=status id=statusBar>设置条件后点击「筛选号码」</div>
+<div class=err id=errMsg></div>
+</div>
+
+<div class=card id=resCard>
+<div style=display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px>
+<span style=font-size:13px;font-weight:600;color:var(--text2)>筛选结果</span>
+<span style=font-size:11px;color:var(--text3) id=resInfo></span>
+</div>
+<div id=resArea><div class=empty><div class=ico>🎲</div><div>设置条件后点击筛选</div></div></div>
+<div class=pg id=pgArea style=display:none></div>
+</div>
+<div class=fn>彩票筛选器 v1</div>
+</div>
+
+<script>
+// ===== GAME DEFS =====
+const G = {
+  ssq:{nm:'双色球',rN:6,rM:33,bN:1,bM:16,zs:[11,22,33]},
+  dlt:{nm:'大乐透',rN:5,rM:35,bN:2,bM:12,zs:[12,24,35]}
+};
+let gk='ssq';
+function ga(){return G[gk];}
+function zd(n){const z=ga().zs;if(n<=z[0])return 0;if(n<=z[1])return 1;return 2;}
+function rt(n){return n%3;}
+function od(n){return n%2===1?'奇':'偶';}
+function p2(n){return String(n).padStart(2,'0');}
+function nCr(n,k){if(k<0||k>n)return 0;if(k===0||k===n)return 1;let r=1;for(let i=1;i<=k;i++)r=r*(n-i+1)/i;return Math.round(r);}
+function*combos(arr,k){if(k===0){yield[];return}for(let i=0;i<=arr.length-k;i++)for(const r of combos(arr.slice(i+1),k-1))yield[arr[i],...r];}
+
+// ===== PRESETS =====
+const OP_PRESETS = [[3,3],[4,2],[5,1],[6,0],[2,4],[1,5],[0,6]];
+const RT_PRESETS = [[2,2,2],[3,2,1],[4,1,1],[3,1,2],[2,3,1],[1,3,2],[1,2,3]];
+const ZN_PRESETS_SSQ = [[2,2,2],[3,2,1],[4,1,1],[3,1,2],[2,3,1],[1,3,2],[1,2,3]];
+const ZN_PRESETS_DLT = [[2,2,1],[3,1,1],[1,3,1],[2,1,2],[1,2,2],[1,1,3]];
+
+// ===== STATE =====
+let selInc=[];   // 必选
+let selExc=[];   // 排除
+let mode='inc';  // 'inc' or 'exc'
+let results=[];
+let curPage=0;
+const PAGE=50;
+
+// ===== INIT PRESETS =====
+function initPresets(){
+  const op=document.getElementById('opPresets'); op.innerHTML='';
+  OP_PRESETS.forEach(([o,e])=>{
+    const b=document.createElement('button'); b.textContent=o+':'+e;
+    b.dataset.o=o; b.dataset.e=e;
+    b.addEventListener('click',function(){
+      document.querySelectorAll('#opPresets button').forEach(x=>x.classList.remove('on'));
+      this.classList.add('on');
+      document.getElementById('opOdd').value=o;
+      document.getElementById('opEven').value=e;
+    });
+    op.appendChild(b);
+  });
+  const rt=document.getElementById('rtPresets'); rt.innerHTML='';
+  RT_PRESETS.forEach(([a,b,c])=>{
+    const bt=document.createElement('button'); bt.textContent=a+':'+b+':'+c;
+    bt.dataset.a=a; bt.dataset.b=b; bt.dataset.c=c;
+    bt.addEventListener('click',function(){
+      document.querySelectorAll('#rtPresets button').forEach(x=>x.classList.remove('on'));
+      this.classList.add('on');
+      document.getElementById('rt0').value=a;
+      document.getElementById('rt1').value=b;
+      document.getElementById('rt2').value=c;
+    });
+    rt.appendChild(bt);
+  });
+  renderZnPresets();
+}
+function renderZnPresets(){
+  const el=document.getElementById('znPresets'); el.innerHTML='';
+  const arr=ga().rN===6?ZN_PRESETS_SSQ:ZN_PRESETS_DLT;
+  arr.forEach(([a,b,c])=>{
+    const bt=document.createElement('button'); bt.textContent=a+':'+b+':'+c;
+    bt.addEventListener('click',function(){
+      document.querySelectorAll('#znPresets button').forEach(x=>x.classList.remove('on'));
+      this.classList.add('on');
+      document.getElementById('zn0').value=a;
+      document.getElementById('zn1').value=b;
+      document.getElementById('zn2').value=c;
+    });
+    el.appendChild(bt);
+  });
+}
+
+// ===== NUMBER PANEL =====
+function renderNums(){
+  const el=document.getElementById('numPanel'); el.innerHTML='';
+  const m=ga().rM;
+  for(let i=1;i<=m;i++){
+    const b=document.createElement('button'); b.className='np'; b.textContent=p2(i); b.dataset.n=i;
+    if(selInc.includes(i)) b.classList.add('inc');
+    if(selExc.includes(i)) b.classList.add('exc');
+    b.addEventListener('click',()=>toggleNum(i));
+    el.appendChild(b);
+  }
+}
+function toggleNum(n){
+  if(mode==='inc'){
+    if(selExc.includes(n)) selExc=selExc.filter(x=>x!==n);
+    selInc=selInc.includes(n)?selInc.filter(x=>x!==n):[...selInc,n].sort((a,b)=>a-b);
+  }else{
+    if(selInc.includes(n)) selInc=selInc.filter(x=>x!==n);
+    selExc=selExc.includes(n)?selExc.filter(x=>x!==n):[...selExc,n].sort((a,b)=>a-b);
+  }
+  renderNums();
+}
+function toggleMode(){
+  mode=mode==='inc'?'exc':'inc';
+  document.getElementById('toggleInc').style.background=mode==='inc'?'var(--pri)':'#fff';
+  document.getElementById('toggleInc').style.color=mode==='inc'?'#fff':'var(--text2)';
+  document.getElementById('toggleExc').style.background=mode==='exc'?'var(--red)':'#fff';
+  document.getElementById('toggleExc').style.color=mode==='exc'?'#fff':'var(--text2)';
+}
+function clearNumSel(){selInc=[];selExc=[];renderNums();}
+function quickOdd(){clearNumSel();for(let i=1;i<=ga().rM;i+=2)selInc.push(i);renderNums();}
+function quickEven(){clearNumSel();for(let i=2;i<=ga().rM;i+=2)selInc.push(i);renderNums();}
+
+// ===== FILTER =====
+document.getElementById('btnFilter').addEventListener('click',doFilter);
+document.getElementById('btnClear').addEventListener('click',doClear);
+
+function doFilter(){
+  const err=document.getElementById('errMsg'); err.textContent='';
+  const st=document.getElementById('statusBar');
+  const o=parseInt(document.getElementById('opOdd').value)||0;
+  const e=parseInt(document.getElementById('opEven').value)||0;
+  const r0=parseInt(document.getElementById('rt0').value)||0;
+  const r1=parseInt(document.getElementById('rt1').value)||0;
+  const r2=parseInt(document.getElementById('rt2').value)||0;
+  const z0=parseInt(document.getElementById('zn0').value)||0;
+  const z1=parseInt(document.getElementById('zn1').value)||0;
+  const z2=parseInt(document.getElementById('zn2').value)||0;
+  const n=ga().rN;
+  if(o+e!==n){err.textContent='奇偶比中奇+偶必须等于'+n;return;}
+  if(r0+r1+r2!==n){err.textContent='路数分布之和必须等于'+n;return;}
+  if(z0+z1+z2!==n){err.textContent='区间分布之和必须等于'+n;return;}
+  if(selInc.length+selExc.length>ga().rM){err.textContent='必选+排除号码不能超过总号码数';return;}
+  // Check include/exclude conflict
+  const conflict=selInc.some(x=>selExc.includes(x));
+  if(conflict){err.textContent='同一个号码不能同时为必选和排除';return;}
+  // Build pool: all numbers not excluded
+  const pool=[];
+  for(let i=1;i<=ga().rM;i++) if(!selExc.includes(i)) pool.push(i);
+  // Check if include numbers are still in pool
+  for(const n2 of selInc) if(!pool.includes(n2)){err.textContent='必选号码'+p2(n2)+'已被排除';return;}
+  // Check if pool has enough numbers
+  if(pool.length<n){err.textContent='可用号码不足';return;}
+  // Check odd/even counts
+  const odds=pool.filter(x=>x%2===1).length, evens=pool.filter(x=>x%2===0).length;
+  if(odds<o){err.textContent='可用奇数不足（需'+o+'，仅'+odds+'）';return;}
+  if(evens<e){err.textContent='可用偶数不足（需'+e+'，仅'+evens+'）';return;}
+  // Check route
+  const r0p=pool.filter(x=>rt(x)===0).length;
+  const r1p=pool.filter(x=>rt(x)===1).length;
+  const r2p=pool.filter(x=>rt(x)===2).length;
+  if(r0p<r0||r1p<r1||r2p<r2){err.textContent='路数分布不满足条件';return;}
+  // Check zone
+  const z0p=pool.filter(x=>zd(x)===0).length;
+  const z1p=pool.filter(x=>zd(x)===1).length;
+  const z2p=pool.filter(x=>zd(x)===2).length;
+  if(z0p<z0||z1p<z1||z2p<z2){err.textContent='区间分布不满足条件';return;}
+  st.innerHTML='正在筛选…';
+  // Generate
+  const t0=performance.now();
+  const redResults=generateRed(pool,n,selInc,o,e,r0,r1,r2,z0,z1,z2);
+  const dt=performance.now()-t0;
+  if(redResults.length===0){
+    st.innerHTML='当前条件下无匹配号码';
+    document.getElementById('resArea').innerHTML='<div class=empty><div class=ico>🔍</div><div>无匹配组合</div></div>';
+    document.getElementById('pgArea').style.display='none';
+    document.getElementById('resInfo').textContent='';
+    return;
+  }
+  // Handle blue balls
+  const bPool=[];
+  for(let i=1;i<=ga().bM;i++) bPool.push(i);
+  const bN=ga().bN;
+  const blueCombos=[...combos(bPool,bN)];
+  const allResults=[];
+  for(const red of redResults){
+    for(const bc of blueCombos){
+      allResults.push({r:red,b:[...bc].sort((a,b)=>a-b)});
+    }
+  }
+  if(allResults.length>200000){
+    st.innerHTML='⚠️ 组合过多（'+allResults.length.toLocaleString()+' 注），请增加限制条件';
+    document.getElementById('resArea').innerHTML='<div class=empty><div class=ico>⚠️</div><div>组合过多，请增加筛选条件</div></div>';
+    document.getElementById('pgArea').style.display='none';
+    document.getElementById('resInfo').textContent='';
+    return;
+  }
+  results=allResults;
+  curPage=0;
+  const gnm=ga().nm;
+  st.innerHTML='找到 <span class=nm>'+results.length.toLocaleString()+'</span> 注  <span class=cst>(约 ¥'+(results.length*2).toLocaleString()+')</span>  ·  耗时 '+dt.toFixed(1)+' ms';
+  renderRes();
+}
+
+
+function checkCombo(arr,o,e,r0,r1,r2,z0,z1,z2){
+  let co=0,cr=[0,0,0],cz=[0,0,0];
+  for(const n of arr){
+    if(n%2===1) co++;
+    cr[rt(n)]++;
+    cz[zd(n)]++;
+  }
+  return co===o && cr[0]===r0 && cr[1]===r1 && cr[2]===r2 && cz[0]===z0 && cz[1]===z1 && cz[2]===z2;
+}
+
+
+// ===== RESULTS =====
+function renderRes(){
+  const el=document.getElementById('resArea');
+  const pg=document.getElementById('pgArea');
+  const total=results.length;
+  const pages=Math.ceil(total/PAGE);
+  if(curPage>=pages) curPage=pages-1;
+  const start=curPage*PAGE, end=Math.min(start+PAGE,total);
+  const page=results.slice(start,end);
+  const zs=ga().zs;
+  let html='<div class=res-list>';
+  for(let i=0;i<page.length;i++){
+    const r=page[i];
+    html+='<div class=ri><span class=ix>'+(start+i+1)+'.</span>';
+    for(const n of r.r){const zi=zd(n);html+='<span class="rb '+(zi===0?'r1':zi===1?'r2':'r3')+'">'+p2(n)+'</span>';}
+    html+='<span class="rb pl">+</span>';
+    for(const n of r.b) html+='<span class="rb bb">'+p2(n)+'</span>';
+    html+='</div>';
+  }
+  html+='</div>';
+  if(page.length===0) html='<div class=empty><div class=ico>🔍</div><div>无匹配组合</div></div>';
+  el.innerHTML=html;
+  document.getElementById('resInfo').textContent='显示 '+start.toLocaleString()+'-'+end.toLocaleString()+' / 共 '+total.toLocaleString()+' 注';
+  if(pages<=1){pg.style.display='none';return;}
+  pg.style.display='flex';
+  pg.innerHTML='';
+  function pb(txt,fn,dis){const b=document.createElement('button');b.textContent=txt;if(dis)b.disabled=true;b.addEventListener('click',fn);pg.appendChild(b);}
+  pb('‹‹',()=>{curPage=0;renderRes();},curPage===0);
+  pb('‹',()=>{curPage=Math.max(0,curPage-1);renderRes();},curPage===0);
+  const pn=document.createElement('span');pn.className='pi';pn.textContent=(curPage+1)+'/'+pages;pg.appendChild(pn);
+  pb('›',()=>{curPage=Math.min(pages-1,curPage+1);renderRes();},curPage>=pages-1);
+  pb('››',()=>{curPage=pages-1;renderRes();},curPage>=pages-1);
+}
+
+// ===== GAME SWITCH =====
+document.querySelectorAll('#gs button').forEach(b=>{
+  b.addEventListener('click',function(){
+    if(this.dataset.g===gk) return;
+    document.querySelectorAll('#gs button').forEach(x=>x.classList.remove('on'));
+    this.classList.add('on');
+    gk=this.dataset.g;
+    results=[];curPage=0;selInc=[];selExc=[];
+    renderZnPresets();
+    doClear();
+    renderNums();
+  });
+});
+
+// ===== DYNAMIC INPUT SYNC =====
+['opOdd','opEven'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',function(){
+    document.querySelectorAll('#opPresets button').forEach(b=>b.classList.remove('on'));
+  });
+});
+['rt0','rt1','rt2'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',function(){
+    document.querySelectorAll('#rtPresets button').forEach(b=>b.classList.remove('on'));
+  });
+});
+['zn0','zn1','zn2'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',function(){
+    document.querySelectorAll('#znPresets button').forEach(b=>b.classList.remove('on'));
+  });
+});
+
+// ===== INIT =====
+initPresets();
+renderNums();
+</script>
+</body>
+</html>
+function generateRed(pool,n,required,o,e,r0,r1,r2,z0,z1,z2){
+  const needMore=n-required.length;
+  if(needMore<0) return [];
+  const remaining=pool.filter(x=>!required.includes(x));
+  if(needMore===0){
+    const combo=[...required].sort((a,b)=>a-b);
+    if(checkCombo(combo,o,e,r0,r1,r2,z0,z1,z2)) return [combo];
+    return [];
+  }
+  if(remaining.length<needMore) return [];
+  const res=[], maxRes=50000;
+  for(const c of combos(remaining,needMore)){
+    const full=[...required,...c].sort((a,b)=>a-b);
+    if(checkCombo(full,o,e,r0,r1,r2,z0,z1,z2)){
+      res.push(full);
+      if(res.length>=maxRes) break;
+    }
+  }
+  return res;
+}
+function doClear(){
+  selInc=[];selExc=[];results=[];curPage=0;
+  document.querySelectorAll('#opPresets button').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('#rtPresets button').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('#znPresets button').forEach(b=>b.classList.remove('on'));
+  const n=ga().rN;
+  document.getElementById('opOdd').value=Math.ceil(n/2);document.getElementById('opEven').value=Math.floor(n/2);
+  document.getElementById('rt0').value=2;document.getElementById('rt1').value=2;document.getElementById('rt2').value=n-4;
+  document.getElementById('zn0').value=2;document.getElementById('zn1').value=2;document.getElementById('zn2').value=n-4;
+  renderNums();
+  document.getElementById('statusBar').textContent='设置条件后点击「筛选号码」';
+  document.getElementById('resArea').innerHTML='<div class=empty><div class=ico>🎲</div><div>设置条件后点击筛选</div></div>';
+  document.getElementById('pgArea').style.display='none';
+  document.getElementById('resInfo').textContent='';
+  document.getElementById('errMsg').textContent='';
+}
