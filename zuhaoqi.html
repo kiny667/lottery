@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset=UTF-8>
+<meta name=viewport content="width=device-width,initial-scale=1.0">
+<title>组号器</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f0f2f5;--card:#fff;--text:#1a1a2e;--text2:#555;--text3:#999;--pri:#4361ee;--pri-hover:#3651d4;--red:#e63946;--red-hover:#c9303e;--amber:#f0a030;--amber-hover:#d8902a;--green:#2ec4b6;--border:#d9d9d9;--radius:8px;--shadow:0 1px 3px rgba(0,0,0,.08)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{max-width:1100px;margin:0 auto;padding:20px 16px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+header h1{font-size:22px;font-weight:700;display:flex;align-items:center;gap:8px}
+header h1 small{font-size:13px;font-weight:400;color:var(--text3)}
+.game-sw{display:flex;gap:0;background:var(--bg);border-radius:var(--radius);padding:3px;border:1px solid var(--border)}
+.game-sw button{padding:8px 20px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:all .2s}
+.game-sw button.on{background:var(--pri);color:#fff;box-shadow:0 2px 8px rgba(67,97,238,.35)}
+.game-sw button[data-game=dlt].on{background:var(--red);box-shadow:0 2px 8px rgba(230,57,70,.35)}
+.main{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+@media(max-width:768px){.main{grid-template-columns:1fr}}
+.panel-numbers{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+.panel-controls{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-size:14px;font-weight:600}
+.section-header .badge{font-size:11px;padding:2px 8px;border-radius:10px;background:#f0f2f5;color:var(--text2);font-weight:500}
+.ball-grid{display:flex;flex-wrap:wrap;gap:6px}
+.ball{width:38px;height:38px;border-radius:50%;border:2px solid var(--border);background:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;user-select:none;position:relative;color:var(--text);line-height:1}
+.ball:hover{border-color:var(--pri);transform:scale(1.08);z-index:1}
+.ball:active{transform:scale(.95)}
+.ball.s-red{background:var(--red);border-color:var(--red);color:#fff}
+.ball.s-blue{background:var(--pri);border-color:var(--pri);color:#fff}
+.ball.s-core{background:var(--amber);border-color:var(--amber);color:#fff;box-shadow:0 0 0 3px rgba(240,160,48,.3)}
+.ball.s-core::after{content:'★';position:absolute;top:-6px;right:-6px;font-size:10px;color:var(--amber);text-shadow:0 0 3px rgba(240,160,48,.5)}
+.ball.s-kill{background:#f5f5f5;border-color:#e0e0e0;color:#ccc;cursor:pointer;opacity:.6}
+.ball.s-kill::after{content:'✕';position:absolute;font-size:16px;color:#ccc;font-weight:300}
+.ball.s-red.s-selected{background:var(--red);border-color:var(--red);color:#fff}
+.ball.s-blue.s-selected{background:var(--pri);border-color:var(--pri);color:#fff}
+.legend{display:flex;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid #f0f0f0;font-size:11px;color:var(--text3);flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:14px;height:14px;border-radius:50%;display:inline-block;flex-shrink:0}
+.legend-dot.ld-red{background:var(--red)}
+.legend-dot.ld-blue{background:var(--pri)}
+.legend-dot.ld-amber{background:var(--amber)}
+.legend-dot.ld-gray{background:#e0e0e0}
+.mode-tabs{display:flex;gap:0;background:var(--bg);border-radius:var(--radius);padding:3px;margin-bottom:16px}
+.mode-tabs button{flex:1;padding:9px 10px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:all .2s}
+.mode-tabs button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.ctrl-group{margin-bottom:14px}
+.ctrl-group:last-of-type{margin-bottom:0}
+.ctrl-group .lbl{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.ctrl-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ctrl-row input,.ctrl-row select{padding:7px 10px;border:1px solid var(--border);border-radius:5px;font-size:13px;outline:none;background:#fff;color:var(--text);transition:border-color .2s}
+.ctrl-row input:focus,.ctrl-row select:focus{border-color:var(--pri);box-shadow:0 0 0 2px rgba(67,97,238,.1)}
+.ctrl-row input[type=number]{width:70px;text-align:center}
+.ctrl-row select{min-width:110px}
+.btn{padding:9px 24px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--pri);color:#fff}.btn-primary:hover{background:var(--pri-hover)}
+.btn-primary:disabled{background:#a0b4f0;cursor:not-allowed;transform:none}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{background:#25a99d}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2)}.btn-outline:hover{border-color:var(--pri);color:var(--pri)}
+.btn-sm{padding:6px 14px;font-size:12px}
+.generate-area{margin:16px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.info-bar{font-size:12px;color:var(--text2);background:#f8f9fc;border-radius:6px;padding:8px 12px;margin-bottom:12px;min-height:34px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.info-bar .num{font-weight:700;color:var(--pri);font-size:14px}
+.info-bar .cost{color:var(--red);font-weight:600}
+.results{margin-top:12px;border-top:1px solid #f0f0f0;padding-top:14px}
+.results .res-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px;font-weight:600;color:var(--text2);flex-wrap:wrap;gap:6px}
+.results .res-acts{display:flex;gap:4px}
+.res-list{max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.res-item{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#f8f9fc;border-radius:5px;font-size:13px;font-family:"SF Mono","Fira Code","Consolas",monospace;transition:background .15s;flex-wrap:wrap}
+.res-item:hover{background:#eef0f7}
+.res-item .idx{font-size:11px;color:var(--text3);min-width:24px;text-align:right;flex-shrink:0}
+.rball{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.rball.rr{background:var(--red)}
+.rball.rb{background:var(--pri)}
+.rball.ra{background:var(--amber)}
+.rball.plus{background:transparent;color:var(--text3);width:auto;font-size:13px}
+.empty-state{text-align:center;padding:36px 16px;color:var(--text3);font-size:13px}
+.empty-state .icon{font-size:32px;margin-bottom:8px}
+.err-msg{font-size:12px;color:var(--red);margin-top:6px;min-height:16px}
+.fn{text-align:center;font-size:11px;color:#ccc;margin-top:24px}
+@media(max-width:480px){
+  .ball{width:34px;height:34px;font-size:12px}
+  .ball-grid{gap:5px}
+  .app{padding:12px 8px}
+  .panel-numbers,.panel-controls{padding:14px}
+  header h1{font-size:18px}
+}
+</style>
+</head>
+<body>
+<div class=app>
+<header>
+<h1>组号器 <small>胆拖 · 复式 · 随机</small></h1>
+<div class=game-sw id=gameSwitch><button class=on data-game=ssq>双色球</button><button data-game=dlt>大乐透</button></div>
+</header>
+<div class=main>
+<div class=panel-numbers>
+<div class=section-header><span>🔴 红球区</span><span class=badge id=redBadge>可用 33</span></div>
+<div class=ball-grid id=redGrid></div>
+<div class=section-header style=margin-top:16px><span>🔵 蓝球区</span><span class=badge id=blueBadge>可用 16</span></div>
+<div class=ball-grid id=blueGrid></div>
+<div class=legend>
+<span class=legend-item><span class=legend-dot ld-red></span> 选中</span>
+<span class=legend-item><span class=legend-dot ld-amber></span> 胆码 ★</span>
+<span class=legend-item><span class=legend-dot ld-gray></span> 杀码 ✕</span>
+<span class=legend-item style=cursor:pointer;color:var(--pri) id=clearAllBtn>清空所有</span>
+</div>
+</div>
+<div class=panel-controls>
+<div class=mode-tabs id=modeTabs>
+<button class=on data-mode=random>随机</button>
+<button data-mode=dantuo>胆拖</button>
+<button data-mode=fushi>复式</button>
+</div>
+<div id=controlsArea></div>
+<div class=generate-area>
+<button class="btn btn-primary" id=btnGenerate>生成号码</button>
+</div>
+<div class=info-bar id=infoBar>选择模式后点击「生成号码」</div>
+<div class=err-msg id=errMsg></div>
+<div class=results id=resultsArea>
+<div class=empty-state><div class=icon>🎲</div><div>选择条件和模式后生成号码</div></div>
+</div>
+</div>
+</div>
+<div class=fn>组号器 v1</div>
+</div>
+<script>
+const GAMES = {
+  ssq: { name:'双色球', rCount:6, rMax:33, bCount:1, bMax:16, zones:[11,22,33] },
+  dlt: { name:'大乐透', rCount:5, rMax:35, bCount:2, bMax:12, zones:[12,24,35] }
+};
+const STATES = { NONE:0, CORE:1, KILL:-1, SEL:2 };
+const S = {
+  game:'ssq', mode:'random',
+  red:{}, blue:{},
+  strategy:'pure', drawCount:5,
+  results:[], pendingInfo:null
+};
+function g(){ return GAMES[S.game]; }
+function range(n,m){ return Array.from({length:m-n+1},(_,i)=>n+i); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function* combos(arr,k){
+  if(k===0){yield[];return}
+  for(let i=0;i<=arr.length-k;i++)
+    for(const r of combos(arr.slice(i+1),k-1))
+      yield[arr[i],...r];
+}
+function pickN(arr,n){ const s=[...arr],r=[];for(let i=0;i<n;i++){const j=Math.floor(Math.random()*s.length);r.push(s[j]);s.splice(j,1)}return r; }
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b;}
+function initStates(){
+  S.red={}; S.blue={};
+  for(let i=1;i<=g().rMax;i++) S.red[i]=STATES.NONE;
+  for(let i=1;i<=g().bMax;i++) S.blue[i]=STATES.NONE;
+}
+function getNumsByState(zone,sv){
+  const map = zone==='red'?S.red:S.blue;
+  return Object.entries(map).filter(([,v])=>v===sv).map(([k])=>Number(k));
+}
+function getAvailable(zone){
+  return getNumsByState(zone,STATES.NONE).concat(getNumsByState(zone,STATES.SEL));
+}
+function getCoreCount(zone){ return getNumsByState(zone,STATES.CORE).length; }
+function getSelectedCount(zone){ return getNumsByState(zone,STATES.SEL).length; }
+function getKillCount(zone){ return getNumsByState(zone,STATES.KILL).length; }
+function render(){
+  renderBalls('red'); renderBalls('blue');
+  updateBadges(); renderControls(); updateInfoBar();
+}
+function renderBalls(zone){
+  const grid = document.getElementById(zone+'Grid');
+  const map = zone==='red'?S.red:S.blue;
+  const max = zone==='red'?g().rMax:g().bMax;
+  const isRed = zone==='red';
+  grid.innerHTML = '';
+  for(let i=1;i<=max;i++){
+    const b = document.createElement('button');
+    b.className = 'ball';
+    b.dataset.zone = zone; b.dataset.num = i;
+    b.textContent = pad2(i);
+    const st = map[i];
+    if(st===STATES.CORE) b.classList.add('s-core');
+    else if(st===STATES.KILL) b.classList.add('s-kill');
+    else if(st===STATES.SEL) b.classList.add(isRed?'s-red':'s-blue','s-selected');
+    b.addEventListener('click',()=>cycleBall(zone,i));
+    grid.appendChild(b);
+  }
+}
+function updateBadges(){
+  const rAvail = getAvailable('red').length, rCore = getCoreCount('red'), rKill = getKillCount('red');
+  const bAvail = getAvailable('blue').length, bCore = getCoreCount('blue'), bKill = getKillCount('blue');
+  let rTxt = ''+rAvail+' 可用';
+  if(rCore>0) rTxt += ' · 胆 '+rCore;
+  if(rKill>0) rTxt += ' · 杀 '+rKill;
+  document.getElementById('redBadge').textContent = rTxt;
+  let bTxt = ''+bAvail+' 可用';
+  if(bCore>0) bTxt += ' · 胆 '+bCore;
+  if(bKill>0) bTxt += ' · 杀 '+bKill;
+  document.getElementById('blueBadge').textContent = bTxt;
+}
+function cycleBall(zone,num){
+  const map = zone==='red'?S.red:S.blue;
+  const cur = map[num];
+  if(S.mode==='random'){
+    map[num] = cur===STATES.KILL ? STATES.NONE : STATES.KILL;
+  }else if(S.mode==='dantuo'){
+    if(cur===0) map[num]=1; else if(cur===1) map[num]=-1; else map[num]=0;
+  }else{
+    map[num] = cur===STATES.SEL ? STATES.NONE : STATES.SEL;
+  }
+  render();
+}
+function clearAllStates(){
+  for(let i=1;i<=g().rMax;i++) S.red[i]=STATES.NONE;
+  for(let i=1;i<=g().bMax;i++) S.blue[i]=STATES.NONE;
+  render();
+}
+function renderControls(){
+  const el = document.getElementById('controlsArea');
+  if(S.mode==='random'){
+    el.innerHTML = '<div class=ctrl-group><div class=lbl>生成注数</div><div class=ctrl-row><input type=number id=inputCount value="'+S.drawCount+'" min=1 max=5000><span style=font-size:12px;color:var(--text3)>注</span></div></div><div class=ctrl-group><div class=lbl>选号策略</div><div class=ctrl-row><select id=inputStrategy><option value=pure '+(S.strategy==='pure'?'selected':'')+'>完全随机</option><option value=balanced_zone '+(S.strategy==='balanced_zone'?'selected':'')+'>区间均衡</option><option value=balanced_parity '+(S.strategy==='balanced_parity'?'selected':'')+'>奇偶均衡</option></select></div></div>';
+    document.getElementById('inputCount').addEventListener('change',function(){S.drawCount=Math.max(1,Math.min(5000,parseInt(this.value)||1));});
+    document.getElementById('inputStrategy').addEventListener('change',function(){S.strategy=this.value;});
+  }else if(S.mode==='dantuo'){
+    const rc = getCoreCount('red'), bc = getCoreCount('blue');
+    const rAvail = getAvailable('red').length, bAvail = getAvailable('blue').length;
+    const needR = g().rCount - rc, needB = g().bCount - bc;
+    let total = 0, canGen = true, info = '';
+    if(rc>g().rCount){ info='红球胆码过多（最多'+(g().rCount-1)+'个）'; canGen=false; }
+    else if(bc>g().bCount){ info='蓝球胆码过多（最多'+(g().bCount-1)+'个）'; canGen=false; }
+    else if(needR>0 && rAvail<needR){ info='红球拖码不足（还需'+needR+'个，可用'+rAvail+'个）'; canGen=false; }
+    else if(needB>0 && bAvail<needB){ info='蓝球拖码不足（还需'+needB+'个，可用'+bAvail+'个）'; canGen=false; }
+    else {
+      if(needR>0&&needB>0) total = nCr(rAvail,needR)*nCr(bAvail,needB);
+      else if(needR>0) total = nCr(rAvail,needR);
+      else if(needB>0) total = nCr(bAvail,needB);
+      else total = 1;
+      if(total>50000) canGen = false;
+      info = rc+'个红球胆码 + '+bc+'个蓝球胆码';
+    }
+    S.pendingInfo = {total,canGen,info};
+    el.innerHTML = '<div class=ctrl-group><div class=lbl>胆码设置</div><div class=ctrl-row style=gap:12px><span style=font-size:13px>红胆 <strong style=color:var(--amber)>'+rc+'</strong> / '+(needR>0?'还需 '+needR+' 位':'已足')+'</span><span style=font-size:13px>蓝胆 <strong style=color:var(--amber)>'+bc+'</strong> / '+(needB>0?'还需 '+needB+' 位':'已足')+'</span></div></div>';
+  }else{
+    const rs = getSelectedCount('red'), bs = getSelectedCount('blue');
+    let total = 0, canGen = true, info = '';
+    if(rs<g().rCount){ info='选择至少'+g().rCount+'个红球（当前'+rs+'个）'; canGen=false; }
+    else if(bs<g().bCount){ info='选择至少'+g().bCount+'个蓝球（当前'+bs+'个）'; canGen=false; }
+    else { total = nCr(rs,g().rCount)*nCr(bs,g().bCount); info = rs+'个红球 × '+bs+'个蓝球'; }
+    S.pendingInfo = {total,canGen,info};
+    el.innerHTML = '<div class=ctrl-group><div class=lbl>已选号码</div><div class=ctrl-row style=gap:12px><span style=font-size:13px>红球 <strong style=color:var(--red)>'+rs+'</strong> 个</span><span style=font-size:13px>蓝球 <strong style=color:var(--pri)>'+bs+'</strong> 个</span><span style=font-size:13px;color:var(--text3)>(至少 '+g().rCount+'+'+g().bCount+')</span></div></div>';
+  }
+  updateInfoBar();
+}
+function nCr(n,k){ if(k<0||k>n) return 0; if(k===0||k===n) return 1; let r=1; for(let i=1;i<=k;i++) r=r*(n-i+1)/i; return Math.round(r); }
+function updateInfoBar(){
+  const el = document.getElementById('infoBar');
+  document.getElementById('errMsg').textContent = '';
+  if(S.mode==='random'){
+    const avail = getAvailable('red').length, bAvail = getAvailable('blue').length;
+    if(avail<g().rCount||bAvail<g().bCount){
+      el.innerHTML = '⚠️ 可用号码不足（红 '+avail+'/'+g().rCount+'，蓝 '+bAvail+'/'+g().bCount+'），请取消部分杀码';
+      return;
+    }
+    el.innerHTML = '红球可用 <span class=num>'+avail+'</span> 个 · 蓝球可用 <span class=num>'+bAvail+'</span> 个 · 生成 <span class=num>'+S.drawCount+'</span> 注';
+  }else{
+    const p = S.pendingInfo;
+    if(!p||!p.canGen){ el.innerHTML = '⚠️ '+(p?p.info:'请选择号码'); return; }
+    el.innerHTML = p.info+' · 共 <span class=num>'+p.total.toLocaleString()+'</span> 注 <span class=cost>(约 ¥'+(p.total*2).toLocaleString()+')</span>';
+    if(p.total>10000) el.innerHTML += ' · <span style=color:var(--red)>数量较大</span>';
+  }
+}
+document.getElementById('btnGenerate').addEventListener('click',generate);
+function generate(){
+  document.getElementById('errMsg').textContent = '';
+  let results = [];
+  try {
+    if(S.mode==='random') results = generateRandom();
+    else if(S.mode==='dantuo') results = generateDanTuo();
+    else results = generateFuShi();
+  }catch(e){ document.getElementById('errMsg').textContent = e.message; return; }
+  if(!results||results.length===0){ document.getElementById('errMsg').textContent = '未生成任何号码'; return; }
+  S.results = results;
+  renderResults();
+}
+function generateRandom(){
+  const availR = shuffle(getAvailable('red')), availB = shuffle(getAvailable('blue'));
+  if(availR.length<g().rCount||availB.length<g().bCount) throw new Error('可用号码不足，请取消部分杀码');
+  const results = [];
+  for(let i=0;i<Math.min(S.drawCount,5000);i++){
+    let reds;
+    if(S.strategy==='balanced_zone') reds = pickBalancedZone(availR,g().rCount);
+    else if(S.strategy==='balanced_parity') reds = pickBalancedParity(availR,g().rCount);
+    else reds = shuffle(availR).slice(0,g().rCount).sort((a,b)=>a-b);
+    const blues = shuffle(availB).slice(0,g().bCount).sort((a,b)=>a-b);
+    results.push({reds,blues});
+  }
+  return results;
+}
+function pickBalancedZone(pool,n){
+  const groups = [[],[],[]], z = g().zones;
+  for(const num of pool){ if(num<=z[0]) groups[0].push(num); else if(num<=z[1]) groups[1].push(num); else groups[2].push(num); }
+  const per = Math.floor(n/3), ex = n%3, res = [];
+  for(let z2=0;z2<3;z2++){ const t=per+(z2<ex?1:0); if(groups[z2].length<t) return shuffle(pool).slice(0,n).sort((a,b)=>a-b); res.push(...pickN(groups[z2],t)); }
+  return res.sort((a,b)=>a-b);
+}
+function pickBalancedParity(pool,n){
+  const odds = pool.filter(x=>x%2===1), evens = pool.filter(x=>x%2===0);
+  const ot = Math.round(n/2), et = n-ot;
+  if(odds.length<ot||evens.length<et) return shuffle(pool).slice(0,n).sort((a,b)=>a-b);
+  return [...pickN(odds,ot),...pickN(evens,et)].sort((a,b)=>a-b);
+}
+function generateDanTuo(){
+  const coreR = getNumsByState('red',STATES.CORE), coreB = getNumsByState('blue',STATES.CORE);
+  const allR = getAvailable('red'), allB = getAvailable('blue');
+  const dragR2 = allR.filter(n=>!coreR.includes(n));
+  const dragB2 = allB.filter(n=>!coreB.includes(n));
+  const needR = g().rCount - coreR.length, needB = g().bCount - coreB.length;
+  if(coreR.length>g().rCount) throw new Error('红球胆码过多');
+  if(coreB.length>g().bCount) throw new Error('蓝球胆码过多');
+  if(dragR2.length<needR) throw new Error('红球拖码不足（还需'+needR+'个，当前'+dragR2.length+'个）');
+  if(dragB2.length<needB) throw new Error('蓝球拖码不足（还需'+needB+'个，当前'+dragB2.length+'个）');
+  const total = nCr(dragR2.length,needR)*nCr(dragB2.length,needB);
+  if(total>50000) throw new Error('组合数过多（'+total.toLocaleString()+'注），请减少拖码');
+  const results = [];
+  for(const rc of combos(dragR2,needR)){
+    const reds = [...coreR,...rc].sort((a,b)=>a-b);
+    for(const bc of combos(dragB2,needB)){
+      results.push({reds,blues:[...coreB,...bc].sort((a,b)=>a-b)});
+    }
+  }
+  return results;
+}
+function generateFuShi(){
+  const selR = getNumsByState('red',STATES.SEL), selB = getNumsByState('blue',STATES.SEL);
+  if(selR.length<g().rCount) throw new Error('红球至少选择'+g().rCount+'个');
+  if(selB.length<g().bCount) throw new Error('蓝球至少选择'+g().bCount+'个');
+  const total = nCr(selR.length,g().rCount)*nCr(selB.length,g().bCount);
+  if(total>50000) throw new Error('组合数过多（'+total.toLocaleString()+'注），请减少选号');
+  const results = [];
+  for(const rc of combos(selR,g().rCount))
+    for(const bc of combos(selB,g().bCount))
+      results.push({reds:[...rc].sort((a,b)=>a-b),blues:[...bc].sort((a,b)=>a-b)});
+  return results;
+}
+function renderResults(){
+  const el = document.getElementById('resultsArea');
+  const res = S.results;
+  if(!res||res.length===0){ el.innerHTML = '<div class=empty-state><div class=icon>🎲</div><div>选择条件和模式后生成号码</div></div>'; return; }
+  const total = res.length, show = Math.min(total,500);
+  let html = '<div class=res-hdr><span>共 <strong style=color:var(--pri)>'+total.toLocaleString()+'</strong> 注 <span class=cost>(约 ¥'+(total*2).toLocaleString()+')</span></span>';
+  html += '<div class=res-acts><button class="btn btn-sm btn-outline" onclick="copyResults()">📋 复制</button><button class="btn btn-sm btn-outline" onclick="exportResults()">💾 导出</button></div></div>';
+  html += '<div class=res-list>';
+  const zones = g().zones;
+  for(let i=0;i<show;i++){
+    const r = res[i];
+    html += '<div class=res-item><span class=idx>'+(i+1)+'.</span>';
+    for(const n of r.reds){ const zi=n<=zones[0]?0:n<=zones[1]?1:2; html += '<span class="rball '+(zi===0?'rr':zi===1?'rb':'ra')+'">'+pad2(n)+'</span>'; }
+    html += '<span class=rball plus>+</span>';
+    for(const n of r.blues) html += '<span class="rball rb">'+pad2(n)+'</span>';
+    html += '</div>';
+  }
+  if(total>show) html += '<div style=text-align:center;padding:12px;font-size:12px;color:var(--text3)>… 仅显示前 '+show.toLocaleString()+' 注，共 '+total.toLocaleString()+' 注</div>';
+  html += '</div>';
+  el.innerHTML = html;
+}
+function copyResults(){
+  if(!S.results||S.results.length===0) return;
+  const txt = S.results.map(r => r.reds.map(pad2).join(' ')+' + '+r.blues.map(pad2).join(' ')).join('\n');
+  navigator.clipboard.writeText(txt).then(()=>showToast('已复制 '+S.results.length+' 注')).catch(()=>{
+    const ta = document.createElement('textarea'); ta.value=txt; ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('已复制');
+  });
+}
+function exportResults(){
+  if(!S.results||S.results.length===0) return;
+  const lines = S.results.map(r => r.reds.map(pad2).join(' ')+' + '+r.blues.map(pad2).join(' '));
+  const txt = g().name+' 组号结果 ('+S.results.length+'注)\n'+'='.repeat(30)+'\n'+lines.join('\n');
+  const blob = new Blob([txt],{type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='zuhao_'+S.game+'_'+new Date().toISOString().slice(0,10)+'.txt';
+  a.click(); URL.revokeObjectURL(a.href); showToast('已导出');
+}
+let toastTimer;
+function showToast(msg){
+  let el = document.getElementById('toast');
+  if(!el){
+    el = document.createElement('div'); el.id='toast';
+    el.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#0f172a;color:#f8fafc;padding:10px 24px;border-radius:8px;font-size:14px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.2)';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg; el.style.opacity='1'; el.style.transform='translateX(-50%) translateY(0)';
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(80px)'},2000);
+}
+document.querySelectorAll('#gameSwitch button').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    if(this.dataset.game===S.game) return;
+    document.querySelectorAll('#gameSwitch button').forEach(b=>b.classList.remove('on'));
+    this.classList.add('on');
+    S.game = this.dataset.game;
+    S.results = [];
+    initStates();
+    render();
+    document.getElementById('resultsArea').innerHTML = '<div class=empty-state><div class=icon>🎲</div><div>选择条件和模式后生成号码</div></div>';
+  });
+});
+document.querySelectorAll('#modeTabs button').forEach(btn=>{
+  btn.addEventListener('click',function(){
+    if(this.dataset.mode===S.mode) return;
+    document.querySelectorAll('#modeTabs button').forEach(b=>b.classList.remove('on'));
+    this.classList.add('on');
+    S.mode = this.dataset.mode;
+    S.results = [];
+    for(let i=1;i<=g().rMax;i++) S.red[i]=STATES.NONE;
+    for(let i=1;i<=g().bMax;i++) S.blue[i]=STATES.NONE;
+    S.pendingInfo = null;
+    render();
+    document.getElementById('resultsArea').innerHTML = '<div class=empty-state><div class=icon>🎲</div><div>选择条件和模式后生成号码</div></div>';
+  });
+});
+document.getElementById('clearAllBtn').addEventListener('click',clearAllStates);
+initStates();
+render();
+</script>
+</body>
+</html>
