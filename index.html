@@ -498,7 +498,7 @@ function pickRandom() {
 document.getElementById('btnSaveResult').addEventListener('click', () => {
   if (!lr || lr.length === 0) return;
   const saved = getSaved();
-  saved.unshift({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), type: gk, numbers: lr.slice(0, Math.min(lr.length, 10)), time: new Date().toLocaleString('zh-CN',{hour12:false}) });
+  saved.unshift({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), type: gk, numbers: lr, time: new Date().toLocaleString('zh-CN',{hour12:false}) });
   localStorage.setItem('lottery_saved', JSON.stringify(saved));
   showToast('已保存到记录'); renderSaved();
 });
