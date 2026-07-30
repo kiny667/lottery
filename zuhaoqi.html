@@ -131,6 +131,11 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
 <div class=err id=errMsg></div>
 </div>
 
+<div class=card id=resCard>
+<div style=display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px>
+<span style=display:flex;align-items:center;gap:8px><span style=font-size:13px;font-weight:600;color:var(--text2)>筛选结果</span><button class="btn btn-sm btn-pri" id=btnCopy style=font-size:11px;padding:3px 10px;display:none onclick=copyAll()>&#128203; 复制全部</button></span>
+<span style=font-size:11px;color:var(--text3) id=resInfo></span>
+</div>
 <div id=resArea><div class=empty><div class=ico>🎲</div><div>设置条件后点击筛选</div></div></div>
 <div class=pg id=pgArea style=display:none></div>
 </div>
@@ -418,11 +423,6 @@ function doClear(){
   document.getElementById('resInfo').textContent='';
   document.getElementById('errMsg').textContent='';
 }
-<div class=card id=resCard>
-<div style=display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px>
-<span style=display:flex;align-items:center;gap:8px><span style=font-size:13px;font-weight:600;color:var(--text2)>筛选结果</span><button class="btn btn-sm btn-pri" id=btnCopy style=font-size:11px;padding:3px 10px;display:none onclick=copyAll()>📋 复制全部</button></span>
-<span style=font-size:11px;color:var(--text3) id=resInfo></span>
-</div>
 function copyAll(){
   if(!results||results.length===0){showToast('暂无结果可复制');return;}
   const lines=results.map(r=>r.r.map(p2).join(' ')+' + '+r.b.map(p2).join(' '));
