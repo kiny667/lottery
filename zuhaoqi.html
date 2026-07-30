@@ -175,6 +175,7 @@ function initPresets(){
     b.addEventListener('click',function(){
       document.querySelectorAll('#opPresets button').forEach(x=>x.classList.remove('on'));
       this.classList.add('on');
+      addZonePat(a+''+b+''+c);
       document.getElementById('opOdd').value=o;
       document.getElementById('opEven').value=e;
     });
@@ -348,7 +349,6 @@ function checkCombo(arr,o,e,r0,r1,r2,zonePats){
   }
   return true;
 }
-}
 
 
 
@@ -377,18 +377,11 @@ document.querySelectorAll('#gs button').forEach(b=>{
     document.querySelectorAll('#rtPresets button').forEach(b=>b.classList.remove('on'));
   });
 });
-  document.getElementById(id).addEventListener('input',function(){
-    document.querySelectorAll('#znPresets button').forEach(b=>b.classList.remove('on'));
-  });
-});
 
 // ===== INIT =====
 initPresets();
 renderNums(); renderZoneTags();
 document.getElementById('zoneInput').addEventListener('keydown',function(e){if(e.key==='Enter')addZonePat();});
-</script>
-</body>
-</html>
 function generateRed(pool,n,required,o,e,r0,r1,r2,zonePats){
   const needMore=n-required.length;
   if(needMore<0) return [];
@@ -483,11 +476,11 @@ function renderRes(){
   pb('›',()=>{curPage=Math.min(pages-1,curPage+1);renderRes();},curPage>=pages-1);
   pb('››',()=>{curPage=pages-1;renderRes();},curPage>=pages-1);
 }
+
+
+
+
+
 </script>
 </body>
 </html>
-
-
-
-
-
