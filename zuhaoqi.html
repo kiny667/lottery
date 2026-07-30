@@ -44,6 +44,24 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
 .z-add:hover{border-color:var(--pri);color:var(--pri)}
 .z-ipt{width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;outline:none;text-align:center}
 .z-ipt:focus{border-color:var(--pri)}
+.pkr-col{display:flex;flex-direction:column;gap:4px}
+.pkr-row{display:flex;align-items:center;gap:6px}
+.pkr-row .pl{font-size:11px;color:var(--text3);min-width:12px;text-align:right;flex-shrink:0;font-weight:500}
+.pkr-row .opts{display:flex;gap:3px}
+.pkr-row .opts button{width:34px;height:30px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;color:var(--text2);padding:0}
+.pkr-row .opts button:hover{border-color:var(--pri);color:var(--pri)}
+.pkr-row .opts button.sel{background:var(--pri);border-color:var(--pri);color:#fff}
+.pkr-row .opts button.sel.r1{background:var(--green);border-color:var(--green)}
+.pkr-row .opts button.sel.r2{background:var(--red);border-color:var(--red)}
+.pkr-col{display:flex;flex-direction:column;gap:4px}
+.pkr-row{display:flex;align-items:center;gap:6px}
+.pkr-row .pl{font-size:11px;color:var(--text3);min-width:12px;text-align:right;flex-shrink:0;font-weight:500}
+.pkr-row .opts{display:flex;gap:3px}
+.pkr-row .opts button{width:34px;height:30px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;color:var(--text2);padding:0}
+.pkr-row .opts button:hover{border-color:var(--pri);color:var(--pri)}
+.pkr-row .opts button.sel{background:var(--pri);border-color:var(--pri);color:#fff}
+.pkr-row .opts button.sel.r1{background:var(--green);border-color:var(--green)}
+.pkr-row .opts button.sel.r2{background:var(--red);border-color:var(--red)}
 .nctrl button{padding:4px 12px;border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;background:#fff;color:var(--text2)}
 .nctrl button:hover{border-color:var(--pri);color:var(--pri)}
 .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}
@@ -87,15 +105,13 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
 
 <div class=card>
 <div class=sec>
-<div class=sec-hdr>奇偶比 <span class=hint>奇数个数 : 偶数个数</span></div>
-<div class=presets id=opPresets></div>
-<div class=diy><span class=dl>自定义</span> 奇数 <input type=number id=opOdd min=0 max=6 value=3> 个 · 偶数 <input type=number id=opEven min=0 max=6 value=3> 个</div>
-</div>
-
 <div class=sec>
-<div class=sec-hdr>路数分布 <span class=hint>每位除3余数组合</span></div>
-<div class=presets id=rtPresets></div>
-<div class=diy><span class=dl>自定义</span> 0路 <input type=number id=rt0 min=0 max=6 value=2> 个 · 1路 <input type=number id=rt1 min=0 max=6 value=2> 个 · 2路 <input type=number id=rt2 min=0 max=6 value=2> 个</div>
+<div class=sec-hdr>① 红区路数 <span class=hint>每位除3余数，点击切换选中</span></div>
+<div class=pkr-col id=routePickers></div>
+</div>
+<div class=sec>
+<div class=sec-hdr>② 红区奇偶</div>
+<div class=pkr-col id=parityPickers></div>
 </div>
 
 <div class=sec>
@@ -157,63 +173,60 @@ function p2(n){return String(n).padStart(2,'0');}
 function nCr(n,k){if(k<0||k>n)return 0;if(k===0||k===n)return 1;let r=1;for(let i=1;i<=k;i++)r=r*(n-i+1)/i;return Math.round(r);}
 function*combos(arr,k){if(k===0){yield[];return}for(let i=0;i<=arr.length-k;i++)for(const r of combos(arr.slice(i+1),k-1))yield[arr[i],...r];}
 
-// ===== PRESETS =====
-const OP_PRESETS = [[3,3],[4,2],[5,1],[6,0],[2,4],[1,5],[0,6]];
-const RT_PRESETS = [[2,2,2],[3,2,1],[4,1,1],[3,1,2],[2,3,1],[1,3,2],[1,2,3]];
-const ZN_PRESETS_SSQ = [[2,2,2],[3,2,1],[4,1,1],[3,1,2],[2,3,1],[1,3,2],[1,2,3]];
-const ZN_PRESETS_DLT = [[2,2,1],[3,1,1],[1,3,1],[2,1,2],[1,2,2],[1,1,3]];
-
 // ===== STATE =====
-let selInc=[];   // 必选
-let selExc=[]; let zonePatterns=[];   // 排除
-let mode='inc';  // 'inc' or 'exc'
+let selInc=[], selExc=[], zonePatterns=[];
+let mode='inc';
 let results=[];
 let curPage=0;
 const PAGE=50;
 
-// ===== INIT PRESETS =====
-function initPresets(){
-  const op=document.getElementById('opPresets'); op.innerHTML='';
-  OP_PRESETS.forEach(([o,e])=>{
-    const b=document.createElement('button'); b.textContent=o+':'+e;
-    b.dataset.o=o; b.dataset.e=e;
-    b.addEventListener('click',function(){
-      document.querySelectorAll('#opPresets button').forEach(x=>x.classList.remove('on'));
-      this.classList.add('on');
-      addZonePat(a+''+b+''+c);
-      document.getElementById('opOdd').value=o;
-      document.getElementById('opEven').value=e;
-    });
-    op.appendChild(b);
+// ===== BUILD PICKERS (路数 & 奇偶) =====
+function buildPickers(){
+  const pk=ga().rN;
+  ['route','parity'].forEach(t=>{
+    const el=document.getElementById(t+'Pickers'); el.innerHTML='';
+    const vv=t==='route'?['0','1','2']:['奇','偶'];
+    for(let i=0;i<pk;i++){
+      const row=document.createElement('div'); row.className='pkr-row';
+      const lbl=document.createElement('span'); lbl.className='pl'; lbl.textContent=i+1;
+      row.appendChild(lbl);
+      const opts=document.createElement('div'); opts.className='opts';
+      vv.forEach(v=>{
+        const b=document.createElement('button');
+        b.dataset.v=v; b.textContent=v;
+        b.addEventListener('click',()=>{
+          b.classList.toggle('sel');
+          if(t==='route'){b.classList.toggle('r1',b.classList.contains('sel')&&v==='1');b.classList.toggle('r2',b.classList.contains('sel')&&v==='2');}
+        });
+        opts.appendChild(b);
+      });
+      row.appendChild(opts); el.appendChild(row);
+    }
   });
-  const rt=document.getElementById('rtPresets'); rt.innerHTML='';
-  RT_PRESETS.forEach(([a,b,c])=>{
-    const bt=document.createElement('button'); bt.textContent=a+':'+b+':'+c;
-    bt.dataset.a=a; bt.dataset.b=b; bt.dataset.c=c;
-    bt.addEventListener('click',function(){
-      document.querySelectorAll('#rtPresets button').forEach(x=>x.classList.remove('on'));
-      this.classList.add('on');
-      document.getElementById('rt0').value=a;
-      document.getElementById('rt1').value=b;
-      document.getElementById('rt2').value=c;
-    });
-    rt.appendChild(bt);
-  });
-  renderZnPresets();
 }
+function getPat(id){
+  const rows=document.querySelectorAll('#'+id+' .pkr-row');
+  let has=0;
+  const arr=Array.from(rows).map(r=>{
+    const sel=r.querySelectorAll('.opts button.sel');
+    if(sel.length) has=1;
+    return sel.length?Array.from(sel).map(b=>b.dataset.v):null;
+  });
+  return has?arr:null;
+}
+function getRoutePat(){return getPat('routePickers');}
+function getParityPat(){return getPat('parityPickers');}
+
+// ===== ZONE PATTERNS =====
 function renderZnPresets(){
   const el=document.getElementById('znPresets'); el.innerHTML='';
-  const arr=ga().rN===6?ZN_PRESETS_SSQ:ZN_PRESETS_DLT;
+  const arr=ga().rN===6?[[2,2,2],[3,2,1],[4,1,1],[3,1,2],[2,3,1],[1,3,2],[1,2,3]]:[[2,2,1],[3,1,1],[1,3,1],[2,1,2],[1,2,2],[1,1,3]];
   arr.forEach(([a,b,c])=>{
     const bt=document.createElement('button'); bt.textContent=a+':'+b+':'+c;
-    bt.addEventListener('click',function(){
-      document.querySelectorAll('#znPresets button').forEach(x=>x.classList.remove('on'));
-      this.classList.add('on');
-    });
+    bt.addEventListener('click',function(){addZonePat(''+a+b+c);});
     el.appendChild(bt);
   });
 }
-// ===== ZONE PATTERNS =====
 function addZonePat(pat){
   pat=pat||document.getElementById('zoneInput').value.trim();
   if(!pat||!/^\d{3}$/.test(pat)){showToast('请输入3位数区间比');return;}
@@ -231,7 +244,7 @@ function removeZonePat(idx){
 function renderZoneTags(){
   const el=document.getElementById('zoneTags');
   if(zonePatterns.length===0){el.innerHTML='<span style=font-size:11px;color:var(--text3)>点击预设或输入添加</span>';return;}
-  el.innerHTML=zonePatterns.map((p,i)=>'<span class=zt>'+p+'<button class=ztd onclick="removeZonePat('+i+')">×</button></span>').join('');
+  el.innerHTML=zonePatterns.map((p,i)=>'<span class=zt>'+p+'<button class=ztd onclick=removeZonePat('+i+')>×</button></span>').join('');
 }
 
 // ===== NUMBER PANEL =====
@@ -272,54 +285,44 @@ document.getElementById('btnFilter').addEventListener('click',doFilter);
 document.getElementById('btnClear').addEventListener('click',doClear);
 
 function doFilter(){
-  const err=document.getElementById("errMsg"); err.textContent="";
-  const st=document.getElementById("statusBar");
-  const o=parseInt(document.getElementById("opOdd").value)||0;
-  const e=parseInt(document.getElementById("opEven").value)||0;
-  const r0=parseInt(document.getElementById("rt0").value)||0;
-  const r1=parseInt(document.getElementById("rt1").value)||0;
-  const r2=parseInt(document.getElementById("rt2").value)||0;
+  const err=document.getElementById('errMsg'); err.textContent='';
+  const st=document.getElementById('statusBar');
   const n=ga().rN;
-  if(o+e!==n){err.textContent="奇偶比中奇+偶必须等于"+n;return;}
-  if(r0+r1+r2!==n){err.textContent="路数分布之和必须等于"+n;return;}
-  const validZonePats=zonePatterns.filter(p=>p.length===3&&/^\d{3}$/.test(p)&&p.split("").reduce((a,b)=>a+parseInt(b),0)===n).map(p=>p.split("").map(Number));
-  if(zonePatterns.length>0&&validZonePats.length===0){err.textContent="区间比须为3位数且和="+n;return;}
-  if(selInc.length+selExc.length>ga().rM){err.textContent="必选+排除号码不能超过总号码数";return;}
+  const rp=getRoutePat(), pp=getParityPat();
+  if(!rp&&!pp&&zonePatterns.length===0&&selInc.length===0&&selExc.length===0){
+    err.textContent='请至少选择一项筛选条件'; return;
+  }
+  if(selInc.length+selExc.length>ga().rM){err.textContent='必选+排除号码不能超过总号码数';return;}
   const conflict=selInc.some(x=>selExc.includes(x));
-  if(conflict){err.textContent="同一个号码不能同时为必选和排除";return;}
+  if(conflict){err.textContent='同一个号码不能同时为必选和排除';return;}
   const pool=[];
   for(let i=1;i<=ga().rM;i++) if(!selExc.includes(i)) pool.push(i);
-  for(const n2 of selInc) if(!pool.includes(n2)){err.textContent="必选号码"+p2(n2)+"已被排除";return;}
-  if(pool.length<n){err.textContent="可用号码不足";return;}
-  const odds=pool.filter(x=>x%2===1).length, evens=pool.filter(x=>x%2===0).length;
-  if(odds<o){err.textContent="可用奇数不足（需"+o+"，仅"+odds+"）";return;}
-  if(evens<e){err.textContent="可用偶数不足（需"+e+"，仅"+evens+"）";return;}
-  const r0p=pool.filter(x=>rt(x)===0).length;
-  const r1p=pool.filter(x=>rt(x)===1).length;
-  const r2p=pool.filter(x=>rt(x)===2).length;
-  if(r0p<r0||r1p<r1||r2p<r2){err.textContent="路数分布不满足条件";return;}
-  if(validZonePats.length>0){
+  for(const n2 of selInc) if(!pool.includes(n2)){err.textContent='必选号码'+p2(n2)+'已被排除';return;}
+  if(pool.length<n){err.textContent='可用号码不足';return;}
+  // Check zone pool sufficiency
+  if(zonePatterns.length>0){
+    const validZonePats=zonePatterns.filter(p=>p.length===3&&/^\d{3}$/.test(p)&&p.split('').reduce((a,b)=>a+parseInt(b),0)===n).map(p=>p.split('').map(Number));
+    if(validZonePats.length===0){err.textContent='区间比须为3位数且和='+n;return;}
     const z0p=pool.filter(x=>zd(x)===0).length;
     const z1p=pool.filter(x=>zd(x)===1).length;
     const z2p=pool.filter(x=>zd(x)===2).length;
     const anyOk=validZonePats.some(([a,b,c])=>z0p>=a&&z1p>=b&&z2p>=c);
-    if(!anyOk){err.textContent="区间分布不满足条件";return;}
+    if(!anyOk){err.textContent='区间分布不满足条件';return;}
   }
-  st.innerHTML="正在筛选…";
+  st.innerHTML='正在筛选…';
   const t0=performance.now();
-  const redResults=generateRed(pool,n,selInc,o,e,r0,r1,r2,validZonePats);
+  const redResults=generateRed(pool,n,selInc,rp,pp,zonePatterns);
   const dt=performance.now()-t0;
   if(redResults.length===0){
-    st.innerHTML="当前条件下无匹配号码";
-    document.getElementById("resArea").innerHTML="<div class=empty><div class=ico>🔍</div><div>无匹配组合</div></div>";
-    document.getElementById("pgArea").style.display="none";
-    document.getElementById("resInfo").textContent="";
+    st.innerHTML='当前条件下无匹配号码';
+    document.getElementById('resArea').innerHTML='<div class=empty><div class=ico>🔍</div><div>无匹配组合</div></div>';
+    document.getElementById('pgArea').style.display='none';
+    document.getElementById('resInfo').textContent='';
     return;
   }
   const bPool=[];
   for(let i=1;i<=ga().bM;i++) bPool.push(i);
-  const bN=ga().bN;
-  const blueCombos=[...combos(bPool,bN)];
+  const blueCombos=[...combos(bPool,ga().bN)];
   const allResults=[];
   for(const red of redResults){
     for(const bc of blueCombos){
@@ -327,102 +330,71 @@ function doFilter(){
     }
   }
   if(allResults.length>200000){
-    st.innerHTML="⚠️ 组合过多（"+allResults.length.toLocaleString()+" 注），请增加限制条件";
-    document.getElementById("resArea").innerHTML="<div class=empty><div class=ico>⚠️</div><div>组合过多，请增加筛选条件</div></div>";
-    document.getElementById("pgArea").style.display="none";
-    document.getElementById("resInfo").textContent="";
+    st.innerHTML='⚠️ 组合过多（'+allResults.length.toLocaleString()+' 注），请增加限制条件';
+    document.getElementById('resArea').innerHTML='<div class=empty><div class=ico>⚠️</div><div>组合过多，请增加筛选条件</div></div>';
+    document.getElementById('pgArea').style.display='none';
+    document.getElementById('resInfo').textContent='';
     return;
   }
-  results=allResults;
-  curPage=0;
-  st.innerHTML="找到 <span class=nm>"+results.length.toLocaleString()+"</span> 注  <span class=cst>(约 ¥"+(results.length*2).toLocaleString()+")</span>  ·  耗时 "+dt.toFixed(1)+" ms";
+  results=allResults; curPage=0;
+  st.innerHTML='找到 <span class=nm>'+results.length.toLocaleString()+'</span> 注  <span class=cst>(约 ¥'+(results.length*2).toLocaleString()+')</span>  ·  耗时 '+dt.toFixed(1)+' ms';
   renderRes();
 }
 
-
-function checkCombo(arr,o,e,r0,r1,r2,zonePats){
-  let co=0,cr=[0,0,0],cz=[0,0,0];
-  for(const n of arr){
-    if(n%2===1) co++;
-    cr[rt(n)]++;
-    cz[zd(n)]++;
-  }
-  if(co!==o) return false;
-  if(cr[0]!==r0||cr[1]!==r1||cr[2]!==r2) return false;
-  if(zonePats.length>0){
-    return zonePats.some(([a,b,c])=>cz[0]===a&&cz[1]===b&&cz[2]===c);
-  }
-  return true;
-}
-
-
-
-// ===== GAME SWITCH =====
-document.querySelectorAll('#gs button').forEach(b=>{
-  b.addEventListener('click',function(){
-    if(this.dataset.g===gk) return;
-    document.querySelectorAll('#gs button').forEach(x=>x.classList.remove('on'));
-    this.classList.add('on');
-    gk=this.dataset.g;
-    results=[];curPage=0;selInc=[];selExc=[];
-    renderZnPresets();
-    doClear();
-    renderNums();
-  });
-});
-
-// ===== DYNAMIC INPUT SYNC =====
-['opOdd','opEven'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',function(){
-    document.querySelectorAll('#opPresets button').forEach(b=>b.classList.remove('on'));
-  });
-});
-['rt0','rt1','rt2'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',function(){
-    document.querySelectorAll('#rtPresets button').forEach(b=>b.classList.remove('on'));
-  });
-});
-
-// ===== INIT =====
-initPresets();
-renderNums(); renderZoneTags();
-document.getElementById('zoneInput').addEventListener('keydown',function(e){if(e.key==='Enter')addZonePat();});
-function generateRed(pool,n,required,o,e,r0,r1,r2,zonePats){
+function generateRed(pool,n,required,rp,pp,zps){
   const needMore=n-required.length;
   if(needMore<0) return [];
   const remaining=pool.filter(x=>!required.includes(x));
   if(needMore===0){
     const combo=[...required].sort((a,b)=>a-b);
-    if(checkCombo(combo,o,e,r0,r1,r2,zonePats)) return [combo];
+    if(checkCombo(combo,rp,pp,zps)) return [combo];
     return [];
   }
   if(remaining.length<needMore) return [];
   const res=[], maxRes=50000;
   for(const c of combos(remaining,needMore)){
     const full=[...required,...c].sort((a,b)=>a-b);
-    if(checkCombo(full,o,e,r0,r1,r2,zonePats)){
+    if(checkCombo(full,rp,pp,zps)){
       res.push(full);
       if(res.length>=maxRes) break;
     }
   }
   return res;
 }
-function doClear(){
-  selInc=[];selExc=[];results=[];curPage=0;
-  document.querySelectorAll('#opPresets button').forEach(b=>b.classList.remove('on'));
-  document.querySelectorAll('#rtPresets button').forEach(b=>b.classList.remove('on'));
-  document.querySelectorAll('#znPresets button').forEach(b=>b.classList.remove('on'));
-  const n=ga().rN;
-  document.getElementById('opOdd').value=Math.ceil(n/2);document.getElementById('opEven').value=Math.floor(n/2);
-  document.getElementById('rt0').value=2;document.getElementById('rt1').value=2;document.getElementById('rt2').value=n-4;
 
-  renderNums();
+function checkCombo(arr,rp,pp,zps){
+  const n=arr.length;
+  // Per-position route check
+  if(rp){
+    for(let i=0;i<n;i++) if(rp[i]&&!rp[i].includes(String(rt(arr[i])))) return false;
+  }
+  // Per-position parity check
+  if(pp){
+    for(let i=0;i<n;i++) if(pp[i]&&!pp[i].includes(od(arr[i]))) return false;
+  }
+  // Zone pattern check
+  if(zps&&zps.length>0){
+    const cz=[0,0,0];
+    for(const num of arr) cz[zd(num)]++;
+    const validZps=zps.filter(p=>p.length===3&&/^\d{3}$/.test(p)).map(p=>p.split('').map(Number));
+    if(!validZps.some(([a,b,c])=>cz[0]===a&&cz[1]===b&&cz[2]===c)) return false;
+  }
+  return true;
+}
+
+function doClear(){
+  selInc=[];selExc=[];zonePatterns=[];results=[];curPage=0;
+  // Reset pickers: clear all selections
+  document.querySelectorAll('#routePickers .opts button,#parityPickers .opts button').forEach(b=>{b.classList.remove('sel','r1','r2');});
+  renderNums(); renderZoneTags();
   document.getElementById('statusBar').textContent='设置条件后点击「筛选号码」';
   document.getElementById('resArea').innerHTML='<div class=empty><div class=ico>🎲</div><div>设置条件后点击筛选</div></div>';
   document.getElementById('pgArea').style.display='none';
   document.getElementById('resInfo').textContent='';
   document.getElementById('errMsg').textContent='';
 }
+
+// ===== COPY & TOAST =====
 function copyAll(){
   if(!results||results.length===0){showToast('暂无结果可复制');return;}
   const lines=results.map(r=>r.r.map(p2).join(' ')+' + '+r.b.map(p2).join(' '));
@@ -442,6 +414,7 @@ function showToast(msg){
   el.textContent=msg;el.style.opacity='1';el.style.transform='translateX(-50%) translateY(0)';
   clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(80px)'},2000);
 }
+
 // ===== RESULTS =====
 function renderRes(){
   const el=document.getElementById('resArea');
@@ -467,9 +440,8 @@ function renderRes(){
   document.getElementById('btnCopy').style.display=total>0?'':'none';
   document.getElementById('resInfo').textContent='显示 '+start.toLocaleString()+'-'+end.toLocaleString()+' / 共 '+total.toLocaleString()+' 注';
   if(pages<=1){pg.style.display='none';return;}
-  pg.style.display='flex';
-  pg.innerHTML='';
-  function pb(txt,fn,dis){const b=document.createElement('button');b.textContent=txt;if(dis)b.disabled=true;b.addEventListener('click',fn);pg.appendChild(b);}
+  pg.style.display='flex'; pg.innerHTML='';
+  function pb(t,fn,dis){const b=document.createElement('button');b.textContent=t;if(dis)b.disabled=true;b.addEventListener('click',fn);pg.appendChild(b);}
   pb('‹‹',()=>{curPage=0;renderRes();},curPage===0);
   pb('‹',()=>{curPage=Math.max(0,curPage-1);renderRes();},curPage===0);
   const pn=document.createElement('span');pn.className='pi';pn.textContent=(curPage+1)+'/'+pages;pg.appendChild(pn);
@@ -477,10 +449,30 @@ function renderRes(){
   pb('››',()=>{curPage=pages-1;renderRes();},curPage>=pages-1);
 }
 
+// ===== GAME SWITCH =====
+document.querySelectorAll('#gs button').forEach(b=>{
+  b.addEventListener('click',function(){
+    if(this.dataset.g===gk) return;
+    document.querySelectorAll('#gs button').forEach(x=>x.classList.remove('on'));
+    this.classList.add('on');
+    gk=this.dataset.g;
+    results=[];curPage=0;selInc=[];selExc=[];zonePatterns=[];
+    buildPickers();
+    renderZnPresets();
+    doClear();
+    renderNums();
+    renderZoneTags();
+  });
+});
 
-
-
-
+// ===== INIT =====
+buildPickers();
+renderZnPresets();
+renderNums();
+renderZoneTags();
+document.getElementById('zoneInput').addEventListener('keydown',function(e){if(e.key==='Enter')addZonePat();});
 </script>
 </body>
 </html>
+
+
