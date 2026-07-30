@@ -133,6 +133,15 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
 <div class=sec-hdr>④ 蓝区奇偶</div>
 <div class=pkr-col id=bParityPickers></div>
 </div>
+<div class=sec>
+<div class=sec-hdr>⑤ 蓝球号码 <span class=hint>点击选中（必出）或排除</span></div>
+<div class=nctrl>
+<button id=btoggleInc onclick="bToggleMode()" style="background:var(--pri);color:#fff;border-color:var(--pri)">✓ 必选</button>
+<button id=btoggleExc onclick="bToggleMode()">✕ 排除</button>
+<button onclick="bClearNumSel()">清空</button>
+</div>
+<div class=num-panel id=bNumPanel></div>
+</div>
 <div class=sec-hdr>区间分布 <span class=hint>输入3位数，如231=2:3:1，可添加多个</span></div>
 <div class=presets id=znPresets></div>
 <div style=display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px>
@@ -200,7 +209,7 @@ function nCr(n,k){if(k<0||k>n)return 0;if(k===0||k===n)return 1;let r=1;for(let 
 function*combos(arr,k){if(k===0){yield[];return}for(let i=0;i<=arr.length-k;i++)for(const r of combos(arr.slice(i+1),k-1))yield[arr[i],...r];}
 
 // ===== STATE =====
-let selInc=[], selExc=[], zonePatterns=[];
+let selInc=[], selExc=[], bSelInc=[], bSelExc=[], zonePatterns=[];
 let mode='inc';
 let results=[];
 let curPage=0;
@@ -301,14 +310,14 @@ function renderNums(){
   const m=ga().rM;
   for(let i=1;i<=m;i++){
     const b=document.createElement('button'); b.className='np'; b.textContent=p2(i); b.dataset.n=i;
-    if(selInc.includes(i)) b.classList.add('inc');
-    if(selExc.includes(i)) b.classList.add('exc');
-    b.addEventListener('click',()=>toggleNum(i));
+    if(selInc.includes(i)) b.classList.add("inc");
+    if(selExc.includes(i)) b.classList.add("exc");
+    b.addEventListener("click",()=>toggleNum(i));
     el.appendChild(b);
   }
 }
 function toggleNum(n){
-  if(mode==='inc'){
+  if(mode==="inc"){
     if(selExc.includes(n)) selExc=selExc.filter(x=>x!==n);
     selInc=selInc.includes(n)?selInc.filter(x=>x!==n):[...selInc,n].sort((a,b)=>a-b);
   }else{
@@ -318,7 +327,7 @@ function toggleNum(n){
   renderNums();
 }
 function toggleMode(){
-  mode=mode==='inc'?'exc':'inc';
+  mode=mode==="inc"?"exc":"inc";
   document.getElementById('toggleInc').style.background=mode==='inc'?'var(--pri)':'#fff';
   document.getElementById('toggleInc').style.color=mode==='inc'?'#fff':'var(--text2)';
   document.getElementById('toggleExc').style.background=mode==='exc'?'var(--red)':'#fff';
@@ -328,10 +337,37 @@ function clearNumSel(){selInc=[];selExc=[];renderNums();}
 function quickOdd(){clearNumSel();for(let i=1;i<=ga().rM;i+=2)selInc.push(i);renderNums();}
 function quickEven(){clearNumSel();for(let i=2;i<=ga().rM;i+=2)selInc.push(i);renderNums();}
 
-// ===== FILTER =====
-document.getElementById('btnFilter').addEventListener('click',doFilter);
-document.getElementById('btnClear').addEventListener('click',doClear);
-
+// ===== BLUE NUMBER PANEL =====
+let bMode="inc";
+function bRenderNums(){
+  const el=document.getElementById('bNumPanel'); el.innerHTML='';
+  const m=ga().bM;
+  for(let i=1;i<=m;i++){
+    const b=document.createElement('button'); b.className='np'; b.textContent=p2(i); b.dataset.n=i;
+    if(bSelInc.includes(i)) b.classList.add("inc");
+    if(bSelExc.includes(i)) b.classList.add("exc");
+    b.addEventListener("click",()=>bToggleNum(i));
+    el.appendChild(b);
+  }
+}
+function bToggleNum(n){
+  if(bMode==="inc"){
+    if(bSelExc.includes(n)) bSelExc=bSelExc.filter(x=>x!==n);
+    bSelInc=bSelInc.includes(n)?bSelInc.filter(x=>x!==n):[...bSelInc,n].sort((a,b)=>a-b);
+  }else{
+    if(bSelInc.includes(n)) bSelInc=bSelInc.filter(x=>x!==n);
+    bSelExc=bSelExc.includes(n)?bSelExc.filter(x=>x!==n):[...bSelExc,n].sort((a,b)=>a-b);
+  }
+  bRenderNums();
+}
+function bToggleMode(){
+  bMode=bMode==="inc"?"exc":"inc";
+  document.getElementById('btoggleInc').style.background=bMode==='inc'?'var(--pri)':'#fff';
+  document.getElementById('btoggleInc').style.color=bMode==='inc'?'#fff':'var(--text2)';
+  document.getElementById('btoggleExc').style.background=bMode==='exc'?'var(--red)':'#fff';
+  document.getElementById('btoggleExc').style.color=bMode==='exc'?'#fff':'var(--text2)';
+}
+function bClearNumSel(){bSelInc=[];bSelExc=[];bRenderNums();}
 function doFilter(){
   const err=document.getElementById('errMsg'); err.textContent='';
   const st=document.getElementById('statusBar');
@@ -343,7 +379,16 @@ function doFilter(){
   if(selInc.length+selExc.length>ga().rM){err.textContent='必选+排除号码不能超过总号码数';return;}
   const conflict=selInc.some(x=>selExc.includes(x));
   if(conflict){err.textContent='同一个号码不能同时为必选和排除';return;}
+  // Build red pool
   const pool=[];
+  for(let i=1;i<=ga().rM;i++) if(!selExc.includes(i)) pool.push(i);
+  for(const n2 of selInc) if(!pool.includes(n2)){err.textContent="红球必选号码"+p2(n2)+"已被排除";return;}
+  if(pool.length<n){err.textContent="红球可用号码不足";return;}
+  // Build blue pool
+  const bPool=[];
+  for(let i=1;i<=ga().bM;i++) if(!bSelExc.includes(i)) bPool.push(i);
+  for(const n2 of bSelInc) if(!bPool.includes(n2)){err.textContent="蓝球必选号码"+p2(n2)+"已被排除";return;}
+  if(bPool.length<ga().bN){err.textContent="蓝球可用号码不足";return;}
   for(let i=1;i<=ga().rM;i++) if(!selExc.includes(i)) pool.push(i);
   for(const n2 of selInc) if(!pool.includes(n2)){err.textContent='必选号码'+p2(n2)+'已被排除';return;}
   if(pool.length<n){err.textContent='可用号码不足';return;}
@@ -370,7 +415,13 @@ function doFilter(){
   }
   const bPool=[];
   for(let i=1;i<=ga().bM;i++) bPool.push(i);
-  let blueCombos=[...combos(bPool,ga().bN)];
+  const bRemaining=bPool.filter(x=>!bSelInc.includes(x));
+  const bNeed=ga().bN-bSelInc.length;
+  let blueCombos=[];
+  if(bNeed===0){blueCombos=[[...bSelInc].sort((a,b)=>a-b)];}
+  else if(bNeed>0&&bRemaining.length>=bNeed){
+    blueCombos=[...combos(bRemaining,bNeed)].map(c=>[...bSelInc,...c].sort((a,b)=>a-b));
+  }
   if(brp||bpp){
     blueCombos=blueCombos.filter(bc=>{
       for(let i=0;i<bc.length;i++){
@@ -440,10 +491,10 @@ function checkCombo(arr,rp,pp,zps){
 }
 
 function doClear(){
-  selInc=[];selExc=[];zonePatterns=[];results=[];curPage=0;
+  selInc=[];selExc=[];bSelInc=[];bSelExc=[];zonePatterns=[];results=[];curPage=0;
   // Reset pickers: clear all selections
   document.querySelectorAll('#routePickers .opts button,#parityPickers .opts button,#bRoutePickers .opts button,#bParityPickers .opts button').forEach(b=>{b.classList.remove('sel','r1','r2');});
-  renderNums(); renderZoneTags();
+  renderNums(); bRenderNums(); renderZoneTags();
   document.getElementById('statusBar').textContent='设置条件后点击「筛选号码」';
   document.getElementById('resArea').innerHTML='<div class=empty><div class=ico>🎲</div><div>设置条件后点击筛选</div></div>';
   document.getElementById('pgArea').style.display='none';
@@ -560,11 +611,11 @@ document.querySelectorAll('#gs button').forEach(b=>{
     document.querySelectorAll('#gs button').forEach(x=>x.classList.remove('on'));
     this.classList.add('on');
     gk=this.dataset.g;
-    results=[];curPage=0;selInc=[];selExc=[];zonePatterns=[];
+  selInc=[];selExc=[];bSelInc=[];bSelExc=[];zonePatterns=[];results=[];curPage=0;
     buildPickers();
     renderZnPresets();
     doClear();
-    renderNums();
+  renderNums(); bRenderNums();
     renderZoneTags();
   });
 });
@@ -572,7 +623,7 @@ document.querySelectorAll('#gs button').forEach(b=>{
 // ===== INIT =====
 buildPickers();
 renderZnPresets();
-renderNums();
+  renderNums(); bRenderNums();
 renderZoneTags();
 document.getElementById('zoneInput').addEventListener('keydown',function(e){if(e.key==='Enter')addZonePat();});
 </script>
