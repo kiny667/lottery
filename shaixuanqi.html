@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>号码筛选器</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f0f2f5;--card:#fff;--text:#1a1a2e;--text2:#555;--text3:#999;--pri:#4361ee;--pri-hover:#3651d4;--red:#e63946;--red-hover:#c9303e;--amber:#f0a030;--green:#2ec4b6;--border:#d9d9d9;--radius:8px;--shadow:0 1px 4px rgba(0,0,0,.07)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{max-width:1100px;margin:0 auto;padding:20px 16px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+header h1{font-size:22px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text)}
+header h1 small{font-size:13px;font-weight:400;color:var(--text3)}
+.game-sw{display:flex;gap:0;background:var(--bg);border-radius:var(--radius);padding:3px;border:1px solid var(--border)}
+.game-sw button{padding:8px 20px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:all .2s}
+.game-sw button.on{background:var(--pri);color:#fff;box-shadow:0 2px 8px rgba(67,97,238,.35)}
+.game-sw button[data-game=dlt].on{background:var(--red);box-shadow:0 2px 8px rgba(230,57,70,.35)}
+.main{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+@media(max-width:860px){.main{grid-template-columns:1fr}}
+.panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+.panel-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.panel-title .badge{font-size:11px;padding:2px 8px;border-radius:10px;background:#f0f2f5;color:var(--text2);font-weight:500;margin-left:auto}
+.fsec{margin-bottom:14px}
+.fsec:last-of-type{margin-bottom:0}
+.fsec-lbl{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.fsec-lbl small{font-weight:400;color:var(--text3);font-size:11px}
+.preset-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.preset-row button{padding:5px 12px;border:1px solid var(--border);border-radius:5px;background:#fff;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;color:var(--text2)}
+.preset-row button:hover{border-color:var(--pri);color:var(--pri)}
+.preset-row button.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.preset-row button.on[data-game=dlt]{background:var(--red);border-color:var(--red)}
+.inp-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.inp-row label{font-size:12px;color:var(--text3)}
+.inp-row input{width:52px;padding:6px 4px;border:1px solid var(--border);border-radius:5px;font-size:13px;font-weight:600;text-align:center;outline:none;transition:border-color .2s;background:#fff;color:var(--text)}
+.inp-row input:focus{border-color:var(--pri);box-shadow:0 0 0 2px rgba(67,97,238,.1)}
+.inp-row .sep{color:var(--text3);font-size:12px;font-weight:500}
+.ball-grid{display:flex;flex-wrap:wrap;gap:5px;max-height:200px;overflow-y:auto;padding:4px 0}
+.ball{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:all .12s;display:flex;align-items:center;justify-content:center;user-select:none;color:var(--text);line-height:1;flex-shrink:0}
+.ball:hover{border-color:var(--pri);transform:scale(1.08);z-index:1}
+.ball:active{transform:scale(.95)}
+.ball.inc{background:var(--pri);border-color:var(--pri);color:#fff}
+.ball.inc.dlt{background:var(--red);border-color:var(--red)}
+.ball.exc{background:#f5f5f5;border-color:#e0e0e0;color:#ccc;opacity:.5;position:relative}
+.ball.exc::after{content:'✕';position:absolute;font-size:13px;color:#bbb;font-weight:300}
+.ball-grid .b-blue{border-color:#aac;background:#eef2ff}
+.ball-grid .b-blue.inc{background:var(--pri);border-color:var(--pri)}
+.ball-grid .b-blue.inc.dlt{background:var(--red);border-color:var(--red)}
+.ball-grid .b-blue.exc{background:#f5f5f5;border-color:#e0e0e0}
+.mode-switch{display:flex;gap:0;background:var(--bg);border-radius:5px;padding:2px;margin-bottom:6px}
+.mode-switch button{flex:1;padding:5px 10px;border:none;border-radius:4px;font-size:12px;font-weight:500;cursor:pointer;background:transparent;color:var(--text2);transition:all .15s}
+.mode-switch button.on{background:var(--card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0}
+.btn{padding:9px 24px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--pri);color:#fff}.btn-primary:hover{background:var(--pri-hover)}.btn-primary:disabled{background:#a0b4f0;cursor:not-allowed;transform:none}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{background:#25a99d}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2)}.btn-outline:hover{border-color:var(--pri);color:var(--pri)}
+.btn-danger{background:var(--red);color:#fff}.btn-danger:hover{background:var(--red-hover)}
+.btn-warn{background:var(--amber);color:#fff}.btn-warn:hover{background:#d8902a}
+.btn-sm{padding:6px 14px;font-size:12px}
+.info-bar{font-size:12px;color:var(--text2);background:#f8f9fc;border-radius:6px;padding:10px 14px;margin-bottom:12px;min-height:38px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.info-bar .hl{font-weight:700;color:var(--pri);font-size:15px}
+.info-bar .cost{color:var(--red);font-weight:600}
+.err-msg{font-size:12px;color:var(--red);margin-top:6px;min-height:16px}
+.results{padding-top:0}
+.res-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px;font-weight:600;color:var(--text2);flex-wrap:wrap;gap:6px}
+.res-list{max-height:480px;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.ri{display:flex;align-items:center;gap:5px;padding:6px 10px;background:#f8f9fc;border-radius:5px;font-size:13px;font-family:"SF Mono","Fira Code","Consolas",monospace;transition:background .15s;flex-wrap:wrap}
+.ri:hover{background:#eef0f7}
+.ri .ix{font-size:11px;color:var(--text3);min-width:28px;text-align:right;flex-shrink:0}
+.rb{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.rb.r1{background:var(--pri)}
+.rb.r2{background:var(--green)}
+.rb.r3{background:var(--red)}
+.rb.bb{background:var(--amber)}
+.rb.pl{background:transparent;color:var(--text3);width:auto;font-size:13px}
+.empty-state{text-align:center;padding:40px 16px;color:var(--text3);font-size:13px}
+.empty-state .icon{font-size:32px;margin-bottom:8px;opacity:.5}
+.pg{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:12px;flex-wrap:wrap}
+.pg button{padding:5px 12px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:#fff;color:var(--text2);cursor:pointer;transition:all .15s}
+.pg button:hover:not(:disabled){border-color:var(--pri);color:var(--pri)}
+.pg button:disabled{opacity:.4;cursor:default}
+.pg .pi{font-size:12px;color:var(--text3)}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--text3);margin-top:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid #f0f0f0}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:12px;height:12px;border-radius:50%;display:inline-block;flex-shrink:0}
+.legend-dot.ld-inc{background:var(--pri)}
+.legend-dot.ld-exc{background:#e0e0e0}
+.legend-dot.ld-r1{background:var(--pri)}
+.legend-dot.ld-r2{background:var(--green)}
+.legend-dot.ld-r3{background:var(--red)}
+.legend-dot.ld-blue{background:var(--amber)}
+.bfilter{background:#f8f9fc;border-radius:6px;padding:12px;margin-top:10px;border:1px solid #eef0f7}
+.bfilter .bf-title{font-size:12px;font-weight:600;color:var(--pri);margin-bottom:8px;display:flex;align-items:center;gap:4px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#0f172a;color:#f8fafc;padding:10px 24px;border-radius:8px;font-size:14px;opacity:0;transition:all .3s;pointer-events:none;z-index:999;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.qacts{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.qacts button{padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;font-size:11px;cursor:pointer;transition:all .15s;color:var(--text3)}
+.qacts button:hover{border-color:var(--pri);color:var(--pri)}
+.rand-area{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid #f0f0f0}
+.rand-area label{font-size:12px;color:var(--text3)}
+.rand-area input{width:60px;padding:5px 6px;border:1px solid var(--border);border-radius:4px;font-size:13px;text-align:center;outline:none}
+.rand-area input:focus{border-color:var(--pri)}
+.sr-area{display:none;margin-top:10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{font-size:11px;padding:3px 10px;border-radius:12px;background:#f0f2f5;color:var(--text2)}
+.chip .v{font-weight:600;color:var(--pri)}
+.chip .v.dlt{color:var(--red)}
+@media(max-width:480px){
+  .app{padding:12px 8px}
+  .panel{padding:14px}
+  .ball{width:32px;height:32px;font-size:11px}
+  .ball-grid{gap:4px;max-height:160px}
+  header h1{font-size:18px}
+  .inp-row input{width:44px}
+  .btn{padding:7px 16px;font-size:13px}
+  .ri{padding:5px 8px;font-size:12px}
+  .rb{width:23px;height:23px;font-size:10px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>号码筛选器 <small>奇偶 · 路数 · 区间 · 号码</small></h1>
+    <div class="game-sw" id="gameSwitch">
+      <button class="on" data-game="ssq">双色球</button>
+      <button data-game="dlt">大乐透</button>
+    </div>
+  </header>
+  <div class="main">
+    <div>
+      <div class="panel" id="numPanel">
+        <div class="panel-title">
+          号码选择
+          <span class="badge" id="poolBadge">可用 33</span>
+        </div>
+        <div class="mode-switch" id="modeSwitch">
+          <button class="on" data-mode="inc">必选</button>
+          <button data-mode="exc">排除</button>
+        </div>
+        <div class="qacts">
+          <button id="qAll">全选</button>
+          <button id="qOdd">全奇</button>
+          <button id="qEven">全偶</button>
+          <button id="qClear">清空</button>
+        </div>
+        <div class="ball-grid" id="redBallGrid"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">
+          红区条件 <small style="font-weight:400;font-size:11px;color:var(--text3)">选出 6 个红球</small>
+          <span class="badge" id="redBadge">待筛选</span>
+        </div>
+        <div class="fsec">
+          <div class="fsec-lbl">奇偶比 <small>奇数 : 偶数</small></div>
+          <div class="preset-row" id="opPresets"></div>
+          <div class="inp-row">
+            <input type="number" id="opOdd" min="0" max="6" value="3">
+            <span class="sep">:</span>
+            <input type="number" id="opEven" min="0" max="6" value="3">
+          </div>
+        </div>
+        <div class="fsec">
+          <div class="fsec-lbl">路数 <small>0路 : 1路 : 2路 (除3余数)</small></div>
+          <div class="preset-row" id="rtPresets"></div>
+          <div class="inp-row">
+            <input type="number" id="rt0" min="0" max="6" value="2">
+            <span class="sep">:</span>
+            <input type="number" id="rt1" min="0" max="6" value="2">
+            <span class="sep">:</span>
+            <input type="number" id="rt2" min="0" max="6" value="2">
+          </div>
+        </div>
+        <div class="fsec">
+          <div class="fsec-lbl">区间 <small>一区 : 二区 : 三区</small></div>
+          <div class="preset-row" id="znPresets"></div>
+          <div class="inp-row">
+            <input type="number" id="zn0" min="0" max="6" value="2">
+            <span class="sep">:</span>
+            <input type="number" id="zn1" min="0" max="6" value="2">
+            <span class="sep">:</span>
+            <input type="number" id="zn2" min="0" max="6" value="2">
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">
+          蓝区条件
+          <span class="badge" id="blueBadge">待筛选</span>
+        </div>
+        <div class="bfilter">
+          <div class="bf-title">指定蓝球号码</div>
+          <div class="ball-grid" id="blueBallGrid" style="max-height:120px"></div>
+          <div class="qacts" style="margin-top:4px">
+            <button id="bqAll">全选</button>
+            <button id="bqClear">清空</button>
+          </div>
+          <div class="fsec" style="margin-top:10px">
+            <div class="fsec-lbl">奇偶比 <small>奇数 : 偶数</small></div>
+            <div class="preset-row" id="bOpPresets"></div>
+            <div class="inp-row">
+              <input type="number" id="bOpOdd" min="0" max="6" value="1">
+              <span class="sep">:</span>
+              <input type="number" id="bOpEven" min="0" max="6" value="0">
+            </div>
+          </div>
+          <div class="fsec">
+            <div class="fsec-lbl">路数 <small>0路 : 1路 : 2路</small></div>
+            <div class="preset-row" id="bRtPresets"></div>
+            <div class="inp-row">
+              <input type="number" id="bRt0" min="0" max="6" value="1">
+              <span class="sep">:</span>
+              <input type="number" id="bRt1" min="0" max="6" value="0">
+              <span class="sep">:</span>
+              <input type="number" id="bRt2" min="0" max="6" value="0">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom:0">
+        <div class="acts" style="border-top:none;padding-top:0;margin-top:0">
+          <button class="btn btn-primary" id="btnFilter">筛选号码</button>
+          <button class="btn btn-outline" id="btnClear">重置</button>
+          <span style="margin-left:auto;font-size:12px;color:var(--text3)">
+            组合 <span id="totalCombos" style="font-weight:700;color:var(--pri)">-</span>
+          </span>
+        </div>
+        <div class="err-msg" id="errMsg"></div>
+      </div>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:0">
+        <div class="res-hdr">
+          <span>筛选结果</span>
+          <div style="display:flex;gap:10px;font-size:12px;color:var(--text3)">
+            <span>匹配 <strong id="countResult" style="color:var(--pri)">-</strong> 注</span>
+            <span>耗时 <strong id="timeResult">-</strong> ms</span>
+          </div>
+        </div>
+        <div class="info-bar" id="infoBar">
+          <span style="color:var(--text3)">设置条件后点击「筛选号码」</span>
+        </div>
+        <div class="chips" id="condChips"></div>
+        <div class="results" id="resArea">
+          <div class="empty-state">
+            <div class="icon">🔍</div>
+            <div>设置条件后点击筛选</div>
+          </div>
+        </div>
+        <div class="pg" id="pgArea" style="display:none"></div>
+        <div class="rand-area" id="randArea" style="display:none">
+          <label>随机选取</label>
+          <input type="number" id="randCount" value="5" min="1" max="100">
+          <label style="font-size:12px;color:var(--text3)">注</label>
+          <button class="btn btn-success btn-sm" id="btnRandom">选取</button>
+          <button class="btn btn-warn btn-sm" id="btnSave" style="display:none">保存结果</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="legend" style="max-width:1100px;margin:16px auto 0;padding:12px 0 0;border-top:1px solid #e0e0e0">
+    <span class="legend-item"><span class="legend-dot ld-inc"></span> 必选</span>
+    <span class="legend-item"><span class="legend-dot ld-exc"></span> 排除</span>
+    <span class="legend-item"><span class="legend-dot ld-r1"></span> 一区 / 0路</span>
+    <span class="legend-item"><span class="legend-dot ld-r2"></span> 二区 / 1路</span>
+    <span class="legend-item"><span class="legend-dot ld-r3"></span> 三区 / 2路</span>
+    <span class="legend-item"><span class="legend-dot ld-blue"></span> 蓝球</span>
+  </div>
+</div>
+<div id="toast"></div>
+<script>
+const GAMES = {
+  ssq: { name:'双色球', rCount:6, rMax:33, bCount:1, bMax:16, zones:[11,22,33] },
+  dlt: { name:'大乐透', rCount:5, rMax:35, bCount:2, bMax:12, zones:[12,24,35] }
+};
+let curGame = 'ssq';
+function g() { return GAMES[curGame]; }
+function pad2(n) { return String(n).padStart(2,'0'); }
+function* combos(arr,k) {
+  if(k===0) { yield []; return; }
+  for(let i=0; i<=arr.length-k; i++)
+    for(const r of combos(arr.slice(i+1), k-1))
+      yield [arr[i], ...r];
+}
+const STATE = {
+  inc: new Set(), exc: new Set(), bInc: new Set(),
+  mode: 'inc', results: [], curPage: 0, PAGE: 50
+};
+const OP_PRESETS = [[3,3],[4,2],[5,1],[6,0],[2,4],[1,5],[0,6]];
+const RT_PRESETS = [[2,2,2],[3,2,1],[4,1,1],[3,1,2],[2,3,1],[1,3,2],[1,2,3]];
+const ZN_PRESETS_SSQ = [[2,2,2],[3,2,1],[4,1,1],[3,1,2],[2,3,1],[1,3,2],[1,2,3]];
+const ZN_PRESETS_DLT = [[2,2,1],[3,1,1],[1,3,1],[2,1,2],[1,2,2],[1,1,3]];
+const B_OP_PRESETS = [[1,0],[0,1]];
+const B_RT_PRESETS = [[1,0,0],[0,1,0],[0,0,1]];
+function renderRedBalls() {
+  const el = document.getElementById('redBallGrid');
+  const m = g().rMax;
+  el.innerHTML = '';
+  for (let i = 1; i <= m; i++) {
+    const b = document.createElement('button');
+    b.className = 'ball';
+    b.textContent = pad2(i);
+    b.dataset.n = i;
+    if (STATE.inc.has(i)) { b.classList.add('inc'); if (curGame==='dlt') b.classList.add('dlt'); }
+    if (STATE.exc.has(i)) b.classList.add('exc');
+    b.addEventListener('click', () => toggleRed(i));
+    el.appendChild(b);
+  }
+  updatePoolBadge();
+}
+function toggleRed(n) {
+  if (STATE.mode === 'inc') {
+    if (STATE.exc.has(n)) STATE.exc.delete(n);
+    if (STATE.inc.has(n)) STATE.inc.delete(n); else STATE.inc.add(n);
+  } else {
+    if (STATE.inc.has(n)) STATE.inc.delete(n);
+    if (STATE.exc.has(n)) STATE.exc.delete(n); else STATE.exc.add(n);
+  }
+  renderRedBalls();
+}
+function renderBlueBalls() {
+  const el = document.getElementById('blueBallGrid');
+  const m = g().bMax;
+  el.innerHTML = '';
+  for (let i = 1; i <= m; i++) {
+    const b = document.createElement('button');
+    b.className = 'ball b-blue';
+    b.textContent = pad2(i);
+    b.dataset.n = i;
+    if (STATE.bInc.has(i)) { b.classList.add('inc'); if (curGame==='dlt') b.classList.add('dlt'); }
+    b.addEventListener('click', () => {
+      if (STATE.bInc.has(i)) STATE.bInc.delete(i); else STATE.bInc.add(i);
+      renderBlueBalls(); updateBlueBadge();
+    });
+    el.appendChild(b);
+  }
+  updateBlueBadge();
+}
+function updatePoolBadge() {
+  const total = g().rMax;
+  const avail = total - STATE.exc.size;
+  document.getElementById('poolBadge').textContent = '可用 ' + avail;
+}
+function updateBlueBadge() {
+  const c = STATE.bInc.size;
+  document.getElementById('blueBadge').textContent = c > 0 ? '已选 ' + c : '待筛选';
+}
+function initPresets() {
+  const op = document.getElementById('opPresets');
+  op.innerHTML = '';
+  OP_PRESETS.forEach(([o,e]) => {
+    const b = document.createElement('button');
+    b.textContent = o+':'+e;
+    b.addEventListener('click', function() {
+      op.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      this.classList.add('on');
+      document.getElementById('opOdd').value = o;
+      document.getElementById('opEven').value = e;
+    });
+    op.appendChild(b);
+  });
+  const rt = document.getElementById('rtPresets');
+  rt.innerHTML = '';
+  RT_PRESETS.forEach(([a,b,c]) => {
+    const bt = document.createElement('button');
+    bt.textContent = a+':'+b+':'+c;
+    bt.addEventListener('click', function() {
+      rt.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      this.classList.add('on');
+      document.getElementById('rt0').value = a;
+      document.getElementById('rt1').value = b;
+      document.getElementById('rt2').value = c;
+    });
+    rt.appendChild(bt);
+  });
+  renderZnPresets();
+  const bop = document.getElementById('bOpPresets');
+  bop.innerHTML = '';
+  B_OP_PRESETS.forEach(([o,e]) => {
+    const b = document.createElement('button');
+    b.textContent = o+':'+e;
+    b.addEventListener('click', function() {
+      bop.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      this.classList.add('on');
+      document.getElementById('bOpOdd').value = o;
+      document.getElementById('bOpEven').value = e;
+    });
+    bop.appendChild(b);
+  });
+  const brt = document.getElementById('bRtPresets');
+  brt.innerHTML = '';
+  B_RT_PRESETS.forEach(([a,b,c]) => {
+    const bt = document.createElement('button');
+    bt.textContent = a+':'+b+':'+c;
+    bt.addEventListener('click', function() {
+      brt.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      this.classList.add('on');
+      document.getElementById('bRt0').value = a;
+      document.getElementById('bRt1').value = b;
+      document.getElementById('bRt2').value = c;
+    });
+    brt.appendChild(bt);
+  });
+}
+function renderZnPresets() {
+  const el = document.getElementById('znPresets');
+  el.innerHTML = '';
+  const arr = g().rCount === 6 ? ZN_PRESETS_SSQ : ZN_PRESETS_DLT;
+  arr.forEach(([a,b,c]) => {
+    const bt = document.createElement('button');
+    bt.textContent = a+':'+b+':'+c;
+    bt.addEventListener('click', function() {
+      el.querySelectorAll('button').forEach(x => x.classList.remove('on'));
+      this.classList.add('on');
+      document.getElementById('zn0').value = a;
+      document.getElementById('zn1').value = b;
+      document.getElementById('zn2').value = c;
+    });
+    el.appendChild(bt);
+  });
+}
+function zoneIdx(n) {
+  const z = g().zones;
+  if (n <= z[0]) return 0; if (n <= z[1]) return 1; return 2;
+}
+function route(n) { return n % 3; }
+function getInputs() {
+  const err = document.getElementById('errMsg');
+  err.textContent = '';
+  const o=parseInt(document.getElementById('opOdd').value)||0;
+  const e=parseInt(document.getElementById('opEven').value)||0;
+  const r0=parseInt(document.getElementById('rt0').value)||0;
+  const r1=parseInt(document.getElementById('rt1').value)||0;
+  const r2=parseInt(document.getElementById('rt2').value)||0;
+  const z0=parseInt(document.getElementById('zn0').value)||0;
+  const z1=parseInt(document.getElementById('zn1').value)||0;
+  const z2=parseInt(document.getElementById('zn2').value)||0;
+  const bo=parseInt(document.getElementById('bOpOdd').value)||0;
+  const be=parseInt(document.getElementById('bOpEven').value)||0;
+  const br0=parseInt(document.getElementById('bRt0').value)||0;
+  const br1=parseInt(document.getElementById('bRt1').value)||0;
+  const br2=parseInt(document.getElementById('bRt2').value)||0;
+  const n=g().rCount, bn=g().bCount;
+  if(o+e!==n){err.textContent='奇偶比中奇+偶必须等于'+n;return null;}
+  if(r0+r1+r2!==n){err.textContent='路数分布之和必须等于'+n;return null;}
+  if(z0+z1+z2!==n){err.textContent='区间分布之和必须等于'+n;return null;}
+  if(bo+be!==bn){err.textContent='蓝球奇偶比之和必须等于'+bn;return null;}
+  if(br0+br1+br2!==bn){err.textContent='蓝球路数分布之和必须等于'+bn;return null;}
+  return {o,e,r0,r1,r2,z0,z1,z2,bo,be,br0,br1,br2,n,bn};
+}
+function doFilter() {
+  const inp = getInputs();
+  if (!inp) return;
+  const t0 = performance.now();
+  const n = inp.n;
+  const pool = [];
+  for (let i = 1; i <= g().rMax; i++) if (!STATE.exc.has(i)) pool.push(i);
+  for (const rn of STATE.inc) if (!pool.includes(rn)) { showToast('必选号码 '+pad2(rn)+' 已被排除'); return; }
+  if (pool.length < n) { showToast('可用号码不足 '+n+' 个'); return; }
+  const poolOdd=pool.filter(x=>x%2===1).length, poolEven=pool.filter(x=>x%2===0).length;
+  if(poolOdd<inp.o){showToast('可用奇数不足（需'+inp.o+'，仅'+poolOdd+'）');return;}
+  if(poolEven<inp.e){showToast('可用偶数不足（需'+inp.e+'，仅'+poolEven+'）');return;}
+  const pR0=pool.filter(x=>route(x)===0).length;
+  const pR1=pool.filter(x=>route(x)===1).length;
+  const pR2=pool.filter(x=>route(x)===2).length;
+  if(pR0<inp.r0||pR1<inp.r1||pR2<inp.r2){showToast('路数分布不满足条件');return;}
+  const pZ0=pool.filter(x=>zoneIdx(x)===0).length;
+  const pZ1=pool.filter(x=>zoneIdx(x)===1).length;
+  const pZ2=pool.filter(x=>zoneIdx(x)===2).length;
+  if(pZ0<inp.z0||pZ1<inp.z1||pZ2<inp.z2){showToast('区间分布不满足条件');return;}
+  const needed = n - STATE.inc.size;
+  const required = [...STATE.inc].sort((a,b)=>a-b);
+  const remaining = pool.filter(x => !STATE.inc.has(x));
+  let redResults = [];
+  if (needed === 0) {
+    if (checkCombo(required, inp)) redResults.push(required);
+  } else if (remaining.length >= needed) {
+    const maxRes = 50000;
+    for (const c of combos(remaining, needed)) {
+      const full = [...required, ...c].sort((a,b)=>a-b);
+      if (checkCombo(full, inp)) { redResults.push(full); if (redResults.length >= maxRes) break; }
+    }
+  }
+  let bluePool = [];
+  if (STATE.bInc.size > 0) { bluePool = [...STATE.bInc].sort((a,b)=>a-b); }
+  else { for (let i = 1; i <= g().bMax; i++) bluePool.push(i); }
+  const blueValid = [];
+  for (const bc of combos(bluePool, inp.bn)) {
+    const combo = [...bc].sort((a,b)=>a-b);
+    let co=0, cr=[0,0,0];
+    for (const n of combo) { if (n%2===1) co++; cr[route(n)]++; }
+    if (co===inp.bo && cr[0]===inp.br0 && cr[1]===inp.br1 && cr[2]===inp.br2) blueValid.push(combo);
+  }
+  if (blueValid.length === 0) { showToast('蓝球无符合条件组合'); return; }
+  const allResults = [];
+  for (const red of redResults) for (const blue of blueValid) allResults.push({r:red, b:blue});
+  const dt = performance.now() - t0;
+  if (allResults.length === 0) {
+    document.getElementById('infoBar').innerHTML = '当前条件下无匹配号码';
+    document.getElementById('resArea').innerHTML = '<div class="empty-state"><div class="icon">🔍</div><div>无匹配组合</div></div>';
+    document.getElementById('pgArea').style.display='none'; document.getElementById('randArea').style.display='none';
+    document.getElementById('countResult').textContent='0'; document.getElementById('timeResult').textContent=dt.toFixed(1);
+    document.getElementById('totalCombos').textContent='0'; return;
+  }
+  if (allResults.length > 200000) {
+    showToast('组合过多（'+allResults.length.toLocaleString()+'注），请增加限制条件');
+    document.getElementById('resArea').innerHTML='<div class="empty-state"><div class="icon">⚠️</div><div>组合过多，请增加筛选条件</div></div>';
+    document.getElementById('pgArea').style.display='none'; document.getElementById('randArea').style.display='none';
+    document.getElementById('countResult').textContent=allResults.length.toLocaleString();
+    document.getElementById('timeResult').textContent=dt.toFixed(1);
+    document.getElementById('totalCombos').textContent=allResults.length.toLocaleString(); return;
+  }
+  STATE.results = allResults; STATE.curPage = 0;
+  document.getElementById('countResult').textContent=allResults.length.toLocaleString();
+  document.getElementById('timeResult').textContent=dt.toFixed(1);
+  document.getElementById('totalCombos').textContent=allResults.length.toLocaleString();
+  document.getElementById('infoBar').innerHTML='找到 <span class="hl">'+allResults.length.toLocaleString()+'</span> 注 <span class="cost">(≈¥'+(allResults.length*2).toLocaleString()+')</span>';
+  renderResults(); renderChips(inp);
+  document.getElementById('randArea').style.display='flex';
+  document.getElementById('btnSave').style.display=allResults.length>0?'':'none';
+}
+function checkCombo(arr, inp) {
+  let co=0, cr=[0,0,0], cz=[0,0,0];
+  for (const n of arr) { if(n%2===1) co++; cr[route(n)]++; cz[zoneIdx(n)]++; }
+  return co===inp.o && cr[0]===inp.r0 && cr[1]===inp.r1 && cr[2]===inp.r2 && cz[0]===inp.z0 && cz[1]===inp.z1 && cz[2]===inp.z2;
+}
+function renderResults() {
+  const el = document.getElementById('resArea');
+  const pg = document.getElementById('pgArea');
+  const total = STATE.results.length, P = STATE.PAGE, pages = Math.ceil(total/P)||1;
+  if (STATE.curPage >= pages) STATE.curPage = pages - 1;
+  const start = STATE.curPage * P, end = Math.min(start + P, total);
+  const page = STATE.results.slice(start, end);
+  let html = '<div class="res-list">';
+  for (let i = 0; i < page.length; i++) {
+    const r = page[i];
+    html += '<div class="ri"><span class="ix">'+(start+i+1)+'.</span>';
+    for (const n of r.r) { const zi=zoneIdx(n); html += '<span class="rb '+(zi===0?'r1':zi===1?'r2':'r3')+'">'+pad2(n)+'</span>'; }
+    html += '<span class="rb pl">+</span>';
+    for (const n of r.b) html += '<span class="rb bb">'+pad2(n)+'</span>';
+    html += '</div>';
+  }
+  html += '</div>';
+  if (page.length === 0) html = '<div class="empty-state"><div class="icon">🔍</div><div>无匹配组合</div></div>';
+  el.innerHTML = html;
+  if (pages <= 1) { pg.style.display = 'none'; return; }
+  pg.style.display = 'flex'; pg.innerHTML = '';
+  function pb(txt, fn, dis) { const b = document.createElement('button'); b.textContent = txt; b.disabled = !!dis; b.addEventListener('click', fn); pg.appendChild(b); }
+  pb('❮❮', () => { STATE.curPage = 0; renderResults(); }, STATE.curPage === 0);
+  pb('❮', () => { STATE.curPage = Math.max(0, STATE.curPage - 1); renderResults(); }, STATE.curPage === 0);
+  const pn = document.createElement('span'); pn.className = 'pi'; pn.textContent = (STATE.curPage + 1) + ' / ' + pages; pg.appendChild(pn);
+  pb('❯', () => { STATE.curPage = Math.min(pages - 1, STATE.curPage + 1); renderResults(); }, STATE.curPage >= pages - 1);
+  pb('❯❯', () => { STATE.curPage = pages - 1; renderResults(); }, STATE.curPage >= pages - 1);
+}
+function renderChips(inp) {
+  const el = document.getElementById('condChips');
+  el.innerHTML = '';
+  el.innerHTML += '<span class="chip">奇偶 <span class="v">'+inp.o+':'+inp.e+'</span></span>';
+  el.innerHTML += '<span class="chip">路数 <span class="v">'+inp.r0+':'+inp.r1+':'+inp.r2+'</span></span>';
+  el.innerHTML += '<span class="chip">区间 <span class="v">'+inp.z0+':'+inp.z1+':'+inp.z2+'</span></span>';
+  if (STATE.inc.size > 0) el.innerHTML += '<span class="chip">必选 <span class="v">'+[...STATE.inc].map(pad2).join(',')+'</span></span>';
+  if (STATE.exc.size > 0) el.innerHTML += '<span class="chip">排除 <span class="v">'+[...STATE.exc].map(pad2).join(',')+'</span></span>';
+  if (STATE.bInc.size > 0) el.innerHTML += '<span class="chip">蓝球 <span class="v">'+[...STATE.bInc].map(pad2).join(',')+'</span></span>';
+}
+function doRandom() {
+  if (STATE.results.length === 0) { showToast('请先筛选号码'); return; }
+  const count = Math.min(Math.max(parseInt(document.getElementById('randCount').value)||1,1), STATE.results.length, 100);
+  const picked = [], indices = new Set();
+  while (indices.size < count) indices.add(Math.floor(Math.random() * STATE.results.length));
+  for (const idx of indices) picked.push(STATE.results[idx]);
+  STATE.results = picked; STATE.curPage = 0;
+  renderResults();
+  document.getElementById('countResult').textContent = picked.length.toLocaleString();
+  document.getElementById('randArea').style.display = 'none';
+  document.getElementById('btnSave').style.display = '';
+  showToast('已随机选取 '+count+' 注');
+}
+function doSave() {
+  if (STATE.results.length === 0) return;
+  const saved = (() => { try { return JSON.parse(localStorage.getItem('lottery_filter_saved'))||[]; } catch { return []; } })();
+  saved.unshift({ id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), type: curGame, numbers: STATE.results, time: new Date().toLocaleString('zh-CN',{hour12:false}) });
+  localStorage.setItem('lottery_filter_saved', JSON.stringify(saved));
+  showToast('已保存到记录');
+}
+function doClear() {
+  STATE.inc.clear(); STATE.exc.clear(); STATE.bInc.clear(); STATE.results = []; STATE.curPage = 0;
+  const n = g().rCount;
+  document.getElementById('opOdd').value = Math.ceil(n/2);
+  document.getElementById('opEven').value = Math.floor(n/2);
+  document.getElementById('rt0').value = 2; document.getElementById('rt1').value = 2; document.getElementById('rt2').value = n - 4;
+  document.getElementById('zn0').value = 2; document.getElementById('zn1').value = 2; document.getElementById('zn2').value = n - 4;
+  const bn = g().bCount;
+  document.getElementById('bOpOdd').value = bn; document.getElementById('bOpEven').value = 0;
+  document.getElementById('bRt0').value = bn; document.getElementById('bRt1').value = 0; document.getElementById('bRt2').value = 0;
+  document.querySelectorAll('.preset-row button').forEach(b => b.classList.remove('on'));
+  renderRedBalls(); renderBlueBalls();
+  document.getElementById('infoBar').innerHTML = '<span style="color:var(--text3)">设置条件后点击「筛选号码」</span>';
+  document.getElementById('resArea').innerHTML = '<div class="empty-state"><div class="icon">🔍</div><div>设置条件后点击筛选</div></div>';
+  document.getElementById('pgArea').style.display='none'; document.getElementById('randArea').style.display='none';
+  document.getElementById('btnSave').style.display='none';
+  document.getElementById('countResult').textContent='-'; document.getElementById('timeResult').textContent='-';
+  document.getElementById('totalCombos').textContent='-'; document.getElementById('condChips').innerHTML='';
+  document.getElementById('errMsg').textContent='';
+}
+function switchGame(game) {
+  if (game === curGame) return;
+  curGame = game;
+  document.querySelectorAll('#gameSwitch button').forEach(b => b.classList.remove('on'));
+  document.querySelector('#gameSwitch button[data-game="'+game+'"]').classList.add('on');
+  renderZnPresets(); doClear();
+}
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+function init() {
+  document.querySelectorAll('#gameSwitch button').forEach(b => { b.addEventListener('click', function() { switchGame(this.dataset.game); }); });
+  document.querySelectorAll('#modeSwitch button').forEach(b => {
+    b.addEventListener('click', function() {
+      STATE.mode = this.dataset.mode;
+      document.querySelectorAll('#modeSwitch button').forEach(x => x.classList.remove('on'));
+      this.classList.add('on');
+    });
+  });
+  document.getElementById('qAll').addEventListener('click', () => { STATE.inc.clear(); STATE.exc.clear(); for(let i=1;i<=g().rMax;i++) STATE.inc.add(i); renderRedBalls(); });
+  document.getElementById('qOdd').addEventListener('click', () => { STATE.inc.clear(); STATE.exc.clear(); for(let i=1;i<=g().rMax;i+=2) STATE.inc.add(i); renderRedBalls(); });
+  document.getElementById('qEven').addEventListener('click', () => { STATE.inc.clear(); STATE.exc.clear(); for(let i=2;i<=g().rMax;i+=2) STATE.inc.add(i); renderRedBalls(); });
+  document.getElementById('qClear').addEventListener('click', () => { STATE.inc.clear(); STATE.exc.clear(); renderRedBalls(); });
+  document.getElementById('bqAll').addEventListener('click', () => { STATE.bInc.clear(); for(let i=1;i<=g().bMax;i++) STATE.bInc.add(i); renderBlueBalls(); });
+  document.getElementById('bqClear').addEventListener('click', () => { STATE.bInc.clear(); renderBlueBalls(); });
+  ['opOdd','opEven'].forEach(id => { document.getElementById(id).addEventListener('input', () => { document.querySelectorAll('#opPresets button').forEach(b => b.classList.remove('on')); }); });
+  ['rt0','rt1','rt2'].forEach(id => { document.getElementById(id).addEventListener('input', () => { document.querySelectorAll('#rtPresets button').forEach(b => b.classList.remove('on')); }); });
+  ['zn0','zn1','zn2'].forEach(id => { document.getElementById(id).addEventListener('input', () => { document.querySelectorAll('#znPresets button').forEach(b => b.classList.remove('on')); }); });
+  ['bOpOdd','bOpEven'].forEach(id => { document.getElementById(id).addEventListener('input', () => { document.querySelectorAll('#bOpPresets button').forEach(b => b.classList.remove('on')); }); });
+  ['bRt0','bRt1','bRt2'].forEach(id => { document.getElementById(id).addEventListener('input', () => { document.querySelectorAll('#bRtPresets button').forEach(b => b.classList.remove('on')); }); });
+  document.getElementById('btnFilter').addEventListener('click', doFilter);
+  document.getElementById('btnClear').addEventListener('click', doClear);
+  document.getElementById('btnRandom').addEventListener('click', doRandom);
+  document.getElementById('btnSave').addEventListener('click', doSave);
+  updateBlueBadge();
+}
+initPresets();
+renderRedBalls();
+renderBlueBalls();
+init();
+const n = g().rCount;
+document.getElementById('opOdd').value = Math.ceil(n/2);
+document.getElementById('opEven').value = Math.floor(n/2);
+const bn = g().bCount;
+document.getElementById('bOpOdd').value = bn;
+document.getElementById('bOpEven').value = 0;
+document.getElementById('bRt0').value = bn;
+</script>
+</body>
+</html>
