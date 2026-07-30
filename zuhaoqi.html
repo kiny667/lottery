@@ -45,6 +45,16 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
 .z-ipt{width:60px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;outline:none;text-align:center}
 .z-ipt:focus{border-color:var(--pri)}
 .pkr-col{display:flex;flex-direction:column;gap:4px}
+.sav-row{display:flex;flex-direction:column;gap:4px;padding:8px 10px;margin-bottom:4px;border:1px solid #eee;border-radius:5px;font-size:12px;font-family:"SF Mono",Consolas,monospace}
+.sav-row:last-child{margin-bottom:0}
+.sav-main{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;line-height:1.6}
+.sav-bottom{display:flex;align-items:center;justify-content:space-between;padding-top:4px;margin-top:4px;border-top:1px solid #f0f0f0;font-size:11px}
+.sav-acts{display:flex;gap:4px}
+.sav-acts .btn{padding:2px 8px;font-size:10px;border-radius:3px}
+.s-time{color:var(--text3)}
+.s-type{font-size:10px;padding:1px 6px;border-radius:3px;font-weight:600}
+.s-type.t-dlt{background:#fce4e4;color:#8b1a24}
+.s-type.t-ssq{background:#e4e8fc;color:#1a2d7a}
 .pkr-row{display:flex;align-items:center;gap:6px}
 .pkr-row .pl{font-size:11px;color:var(--text3);min-width:12px;text-align:right;flex-shrink:0;font-weight:500}
 .pkr-row .opts{display:flex;gap:3px}
@@ -150,12 +160,20 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
 <div class=card id=resCard>
 <div style=display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px>
 <span style=display:flex;align-items:center;gap:8px><span style=font-size:13px;font-weight:600;color:var(--text2)>筛选结果</span><button class="btn btn-sm btn-pri" id=btnCopy style=font-size:11px;padding:3px 10px;display:none onclick=copyAll()>&#128203; 复制全部</button></span>
+<button class="btn btn-sm btn-success" id=btnSave style=font-size:11px;padding:3px 10px;display:none onclick=saveResults()>&#128190; 保存</button>
 <span style=font-size:11px;color:var(--text3) id=resInfo></span>
 </div>
 <div id=resArea><div class=empty><div class=ico>🎲</div><div>设置条件后点击筛选</div></div></div>
 <div class=pg id=pgArea style=display:none></div>
 </div>
 <div class=fn>彩票筛选器 v1</div>
+<div class=card id=saveCard style=display:none>
+<div style=display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px>
+<span style=font-size:13px;font-weight:600;color:var(--text2)>已保存的号码</span>
+<button class="btn btn-sm" onclick="clearAllSaved()" style=font-size:11px;color:var(--red);border:1px solid var(--red);background:none;border-radius:4px;padding:3px 10px;cursor:pointer>清空全部</button>
+</div>
+<div id=saveList></div>
+</div>
 </div>
 
 <script>
@@ -415,6 +433,52 @@ function showToast(msg){
   clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(80px)'},2000);
 }
 
+// ===== SAVE =====
+function getSaved(){try{return JSON.parse(localStorage.getItem("zuhao_saved"))||[]}catch{return []}}
+function saveSaved(d){localStorage.setItem("zuhao_saved",JSON.stringify(d))}
+function saveResults(){
+  if(!results||results.length===0) return
+  const saved=getSaved()
+  const entry={
+    id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    game:gk, numbers:results, time:new Date().toLocaleString("zh-CN",{hour12:false}),
+    count:results.length, filters:{rp:getRoutePat(),pp:getParityPat(),zps:zonePatterns}
+  }
+  saved.unshift(entry)
+  saveSaved(saved)
+  renderSaved()
+  showToast("已保存 "+results.length+" 注")
+}
+function deleteSaved(id){
+  saveSaved(getSaved().filter(s=>s.id!==id))
+  renderSaved()
+}
+function clearAllSaved(){
+  if(!getSaved().length) return
+  saveSaved([])
+  renderSaved()
+  showToast("已清空全部")
+}
+function renderSaved(){
+  const saved=getSaved(), card=document.getElementById("saveCard"), list=document.getElementById("saveList")
+  if(!card) return
+  if(saved.length===0){card.style.display="none";return}
+  card.style.display=""
+  list.innerHTML=saved.map(e=>{
+    const tn=e.game==="dlt"?"大乐透":"双色球"
+    const rows=e.numbers.slice(0,5).map(n=>n.r.map(p2).join(" ")+" + "+n.b.map(p2).join(" ")).join(" | ")
+    const more=e.numbers.length>5?" …等"+e.numbers.length+"注":""
+    return "<div class=sav-row><div class=sav-main><span class=s-type "+(e.game==="dlt"?"t-dlt":"t-ssq")+">"+tn+"</span><span>"+rows+more+"</span></div><div class=sav-bottom><span class=s-time>"+e.time+"</span><div class=sav-acts><button class=\"btn btn-sm btn-outline\" onclick=copySaved(\""+e.id+"\")>&#128203;</button><button class=\"btn btn-sm\" onclick=deleteSaved(\""+e.id+"\") style=color:var(--red);border:1px solid var(--red)>&#10005;</button></div></div></div>"
+  }).join("")
+}
+function copySaved(id){
+  const e=getSaved().find(x=>x.id===id); if(!e) return
+  const txt=e.numbers.map(n=>n.r.map(p2).join(" ")+" + "+n.b.map(p2).join(" ")).join("\\n")
+  navigator.clipboard.writeText(txt).then(()=>showToast("已复制")).catch(()=>{
+    const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);showToast("已复制")
+  })
+}
+
 // ===== RESULTS =====
 function renderRes(){
   const el=document.getElementById('resArea');
@@ -438,6 +502,7 @@ function renderRes(){
   if(page.length===0) html='<div class=empty><div class=ico>🔍</div><div>无匹配组合</div></div>';
   el.innerHTML=html;
   document.getElementById('btnCopy').style.display=total>0?'':'none';
+  document.getElementById('btnSave').style.display=total>0?'':'none'
   document.getElementById('resInfo').textContent='显示 '+start.toLocaleString()+'-'+end.toLocaleString()+' / 共 '+total.toLocaleString()+' 注';
   if(pages<=1){pg.style.display='none';return;}
   pg.style.display='flex'; pg.innerHTML='';
