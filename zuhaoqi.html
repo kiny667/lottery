@@ -413,8 +413,7 @@ function doFilter(){
     document.getElementById('resInfo').textContent='';
     return;
   }
-  const bPool=[];
-  for(let i=1;i<=ga().bM;i++) bPool.push(i);
+  
   const bRemaining=bPool.filter(x=>!bSelInc.includes(x));
   const bNeed=ga().bN-bSelInc.length;
   let blueCombos=[];
@@ -629,5 +628,6 @@ document.getElementById('zoneInput').addEventListener('keydown',function(e){if(e
 </script>
 </body>
 </html>
+
 
 
