@@ -393,7 +393,7 @@ function renderSv(){
     const gl=d.game==='dlt'?'大乐透':'双色球';
     const sm=d.res.slice(0,3).map(s=>s.r.map(n=>p2(n)).join(' ')+' + '+s.b.map(n=>p2(n)).join(' ')).join(' | ');
     const mr=d.res.length>3?' ...等':'';
-    return '<div class="saved-item"><div class="nums">'+sm+mr+'</div><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span class="s-time">'+gl+' '+d.cnt.toLocaleString()+'注 '+d.time+'</span><div class="s-acts"><button onclick="copySaved('\+d.id+\')" style="background:var(--green)">复</button><button onclick="delSv(\''+d.id+'\')" class="del">删</button></div></div></div>';
+    return '<div class="saved-item"><div class="nums">'+sm+mr+'</div><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span class="s-time">'+gl+' '+d.cnt.toLocaleString()+'注 '+d.time+'</span><div class="s-acts"><button onclick="copySaved(\''+d.id+'\')" style="background:var(--green)">复</button><button onclick="delSv(\''+d.id+'\')" class="del">删</button></div></div></div>';
   }).join('');
 }
 function copyAll(){
