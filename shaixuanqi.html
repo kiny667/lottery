@@ -399,7 +399,7 @@ function renderSv(){
 function copyAll(){
   if(!S.res||S.res.length===0){showToast("暂无结果可复制");return}
   const lines=S.res.map(s=>s.r.map(p2).join(" ")+" + "+s.b.map(p2).join(" "));
-  const txt=ga().name+" 筛选结果 ("+S.res.length+"注)\\n"+"=".repeat(30)+"\\n"+lines.join("\\n");
+  const txt=ga().name+" 筛选结果 ("+S.res.length+"注)\n"+"=".repeat(30)+"\n"+lines.join("\n");
   navigator.clipboard.writeText(txt).then(()=>showToast("已复制全部 "+S.res.length.toLocaleString()+" 注")).catch(()=>{
     const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);showToast("已复制")
   });
@@ -408,13 +408,13 @@ function copyPage(){
   if(!S.res||S.res.length===0){showToast("暂无结果可复制");return}
   const st=S.cp*S.P,en=Math.min(st+S.P,S.res.length),page=S.res.slice(st,en);
   const lines=page.map((s,i)=>"第"+(st+i+1)+"注: "+s.r.map(p2).join(" ")+" + "+s.b.map(p2).join(" "));
-  navigator.clipboard.writeText(lines.join("\\n")).then(()=>showToast("已复制本页 "+page.length+" 注")).catch(()=>{
-    const ta=document.createElement("textarea");ta.value=lines.join("\\n");ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);showToast("已复制")
+  navigator.clipboard.writeText(lines.join("\n")).then(()=>showToast("已复制本页 "+page.length+" 注")).catch(()=>{
+    const ta=document.createElement("textarea");ta.value=lines.join("\n");ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);showToast("已复制")
   });
 }
 function copySaved(id){
   const d=getSD().find(x=>x.id===id);if(!d)return
-  const txt=d.res.map(s=>s.r.map(p2).join(" ")+" + "+s.b.map(p2).join(" ")).join("\\n");
+  const txt=d.res.map(s=>s.r.map(p2).join(" ")+" + "+s.b.map(p2).join(" ")).join("\n");
   navigator.clipboard.writeText(txt).then(()=>showToast("已复制")).catch(()=>{
     const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);showToast("已复制")
   });
