@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -158,6 +158,13 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
           <span class="badge" id="condBadge">红 6 + 蓝 1</span>
         </div>
         <div id="posContainer"></div>
+        <div class="sec-title">区间比 <small>整体区间分布，如231=2:3:1，可添加多个</small></div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px" id="zonePresets"></div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
+          <input id="zoneInput" placeholder="231" maxlength="3" style="width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;outline:none">
+          <button class="btn btn-sm btn-outline" onclick="addZP()" style="font-size:11px;padding:3px 10px">+ 添加</button>
+        </div>
+        <div id="zoneTags" style="display:flex;flex-wrap:wrap;gap:4px;min-height:26px"></div>
       </div>
       <div class="panel saved-panel">
         <div class="sp-title">
@@ -187,6 +194,10 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
           <span>筛选结果</span>
           <div style="display:flex;gap:10px;font-size:12px;color:var(--text3)">
             <span>匹配 <strong id="countResult" style="color:var(--pri)">-</strong> 注</span>
+          <div style="display:flex;gap:4px">
+            <button class="btn btn-sm btn-primary" id="btnCopyAll" style="display:none;font-size:11px;padding:3px 10px" onclick="copyAll()">复制全部</button>
+            <button class="btn btn-sm btn-outline" id="btnCopyPage" style="display:none;font-size:11px;padding:3px 10px" onclick="copyPage()">复制本页</button>
+          </div>
             <span>耗时 <strong id="timeResult">-</strong> ms</span>
           </div>
         </div>
@@ -239,6 +250,7 @@ const S = {
   exc: new Set(), bExc: new Set(),
   res: [], cp: 0, P: 50
 };
+let zonePatterns=[];
 function rP() {
   const rows = document.querySelectorAll('#posContainer .pos-row');
   const red=[], blue=[];
@@ -267,6 +279,18 @@ function genR(ps) {
   for(let i=0;i<n;i++){let ok=0;for(let x=1;x<=mx;x++){if(exc.has(x))continue;if(matchP(x,ps[i])){ok=1;break}}if(!ok)return{e:'第'+(i+1)+'位无可用号码'}}
   function bt(pos,cur,last){if(res.length>=MAX)return;if(pos===n){res.push([...cur]);return};const st=Math.max(1,last+1);for(let x=st;x<=mx;x++){if(exc.has(x))continue;if(!matchP(x,ps[pos]))continue;cur.push(x);bt(pos+1,cur,x);cur.pop();if(res.length>=MAX)return}}
   bt(0,[],0);
+  if(zonePatterns.length>0){
+    const valid=zonePatterns.filter(p=>p.length===3&&/^\d{3}$/.test(p)).map(p=>p.split("").map(Number));
+    if(valid.length>0){
+      const filtered=res.filter(c=>{
+        const cz=[0,0,0];
+        for(const n of c)cz[zi(n)]++;
+        return valid.some(([a,b,c2])=>cz[0]===a&&cz[1]===b&&cz[2]===c2);
+      });
+      if(filtered.length===0) return {e:"区间比无匹配组合"};
+      return {res:filtered};
+    }
+  }
   if(res.length>=MAX) return {e:'组合过多（超过20万），请增加条件',res};
   return {res};
 }
@@ -290,7 +314,7 @@ function doF() {
   if(!rr.res||rr.res.length===0){
     document.getElementById('infoBar').innerHTML='红球无匹配组合';
     document.getElementById('resArea').innerHTML='<div class="empty-state"><div class="icon">🔍</div><div>红球无匹配组合</div></div>';
-    document.getElementById('pgArea').style.display='none';document.getElementById('randArea').style.display='none';
+  document.getElementById('pgArea').style.display='none';document.getElementById('randArea').style.display='none';document.getElementById('btnCopyAll').style.display='none';document.getElementById('btnCopyPage').style.display='none';
     document.getElementById('countResult').textContent='0';document.getElementById('totalCombos').textContent='0';
     document.getElementById('timeResult').textContent=(performance.now()-t0).toFixed(1);return;
   }
@@ -307,6 +331,8 @@ function doF() {
   document.getElementById('infoBar').innerHTML='找到 <span class="hl">'+all.length.toLocaleString()+'</span> 注 <span class="cost">(≈¥'+(all.length*2).toLocaleString()+')</span> <span class="note">红 '+rr.res.length+' x 蓝 '+br.res.length+'</span>';
   renderR();
   document.getElementById('randArea').style.display='flex';
+  document.getElementById('btnCopyAll').style.display='';
+  document.getElementById('btnCopyPage').style.display='';
   document.getElementById('btnSaveCurrent').style.display='';
 }
 function renderR() {
@@ -344,6 +370,8 @@ function doRand() {
   S.res=pk;S.cp=0;renderR();
   document.getElementById('countResult').textContent=pk.length.toLocaleString();
   document.getElementById('randArea').style.display='none';
+  document.getElementById('btnCopyAll').style.display='';
+  document.getElementById('btnCopyPage').style.display='';
   document.getElementById('btnSaveCurrent').style.display='';
   showToast('已随机选取 '+cnt+' 注');
 }
@@ -365,16 +393,40 @@ function renderSv(){
     const gl=d.game==='dlt'?'大乐透':'双色球';
     const sm=d.res.slice(0,3).map(s=>s.r.map(n=>p2(n)).join(' ')+' + '+s.b.map(n=>p2(n)).join(' ')).join(' | ');
     const mr=d.res.length>3?' ...等':'';
-    return '<div class="saved-item"><div class="nums">'+sm+mr+'</div><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span class="s-time">'+gl+' '+d.cnt.toLocaleString()+'注 '+d.time+'</span><div class="s-acts"><button onclick="delSv(\''+d.id+'\')" class="del">删</button></div></div></div>';
+    return '<div class="saved-item"><div class="nums">'+sm+mr+'</div><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap"><span class="s-time">'+gl+' '+d.cnt.toLocaleString()+'注 '+d.time+'</span><div class="s-acts"><button onclick="copySaved('\+d.id+\')" style="background:var(--green)">复</button><button onclick="delSv(\''+d.id+'\')" class="del">删</button></div></div></div>';
   }).join('');
 }
+function copyAll(){
+  if(!S.res||S.res.length===0){showToast("暂无结果可复制");return}
+  const lines=S.res.map(s=>s.r.map(p2).join(" ")+" + "+s.b.map(p2).join(" "));
+  const txt=ga().name+" 筛选结果 ("+S.res.length+"注)\\n"+"=".repeat(30)+"\\n"+lines.join("\\n");
+  navigator.clipboard.writeText(txt).then(()=>showToast("已复制全部 "+S.res.length.toLocaleString()+" 注")).catch(()=>{
+    const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);showToast("已复制")
+  });
+}
+function copyPage(){
+  if(!S.res||S.res.length===0){showToast("暂无结果可复制");return}
+  const st=S.cp*S.P,en=Math.min(st+S.P,S.res.length),page=S.res.slice(st,en);
+  const lines=page.map((s,i)=>"第"+(st+i+1)+"注: "+s.r.map(p2).join(" ")+" + "+s.b.map(p2).join(" "));
+  navigator.clipboard.writeText(lines.join("\\n")).then(()=>showToast("已复制本页 "+page.length+" 注")).catch(()=>{
+    const ta=document.createElement("textarea");ta.value=lines.join("\\n");ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);showToast("已复制")
+  });
+}
+function copySaved(id){
+  const d=getSD().find(x=>x.id===id);if(!d)return
+  const txt=d.res.map(s=>s.r.map(p2).join(" ")+" + "+s.b.map(p2).join(" ")).join("\\n");
+  navigator.clipboard.writeText(txt).then(()=>showToast("已复制")).catch(()=>{
+    const ta=document.createElement("textarea");ta.value=txt;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);showToast("已复制")
+  });
+}
 function doClear() {
+  S.exc.clear();S.bExc.clear();S.res=[];S.cp=0;zonePatterns=[];
   S.exc.clear();S.bExc.clear();S.res=[];S.cp=0;
   buildUI();
   renderExc();
   document.getElementById('infoBar').innerHTML='<span style="color:var(--text3)">设置条件后点击「筛选号码」</span>';
   document.getElementById('resArea').innerHTML='<div class="empty-state"><div class="icon">🔍</div><div>设置条件后点击筛选</div></div>';
-  document.getElementById('pgArea').style.display='none';document.getElementById('randArea').style.display='none';
+  document.getElementById('pgArea').style.display='none';document.getElementById('randArea').style.display='none';document.getElementById('btnCopyAll').style.display='none';document.getElementById('btnCopyPage').style.display='none';
   document.getElementById('btnSaveCurrent').style.display='none';
   document.getElementById('countResult').textContent='-';document.getElementById('timeResult').textContent='-';
   document.getElementById('totalCombos').textContent='-';document.getElementById('errMsg').textContent='';
@@ -409,7 +461,7 @@ function buildUI() {
 function mkT(cnt,isR) {
   const t=document.createElement('table');t.className='pos-table';
   const mx=isR?ga().rM:ga().bM;
-  let h='<tr><th>位</th><th>号</th><th>奇偶</th><th>路数</th>'+(isR?'<th>区</th>':'')+'<th>可选</th></tr>';
+  let h='<tr><th>位</th><th>号</th><th>奇偶</th><th>路数</th><th>可选</th></tr>';
   t.innerHTML=h;
   for(let i=0;i<cnt;i++){
     const tr=document.createElement('tr');tr.className='pos-row';tr.dataset.idx=i;tr.dataset.isR=isR?'1':'0';
@@ -420,7 +472,6 @@ function mkT(cnt,isR) {
     nc.appendChild(ni);tr.appendChild(nc);
     const pc=document.createElement('td');const pd=document.createElement('div');pd.className='cp';addP(pd,'p','奇',1,tr);addP(pd,'p','偶',0,tr);addP(pd,'p','不','a',tr,1);pc.appendChild(pd);tr.appendChild(pc);
     const rc=document.createElement('td');const rd=document.createElement('div');rd.className='cp';addP(rd,'r','0',0,tr);addP(rd,'r','1',1,tr);addP(rd,'r','2',2,tr);addP(rd,'r','不','a',tr,1);rc.appendChild(rd);tr.appendChild(rc);
-    if(isR){const zc=document.createElement('td');const zd=document.createElement('div');zd.className='cp';addP(zd,'z','一',0,tr);addP(zd,'z','二',1,tr);addP(zd,'z','三',2,tr);addP(zd,'z','不','a',tr,1);zc.appendChild(zd);tr.appendChild(zc)}
     const ac=document.createElement('td');const ab=document.createElement('span');ab.className='avail-badge';ab.id='ab_'+(isR?'r':'b')+'_'+i;ab.innerHTML='<span class="n">~</span>';ac.appendChild(ab);tr.appendChild(ac);
     t.appendChild(tr);
   }
@@ -446,6 +497,30 @@ function rSP(row) {
   row.querySelectorAll('.cp button.on').forEach(b=>{const g=b.dataset.grp,v=b.dataset.val;if(g==='p')p.p=v==='a'?'a':parseInt(v);if(g==='r')p.r=v==='a'?'a':parseInt(v);if(g==='z')p.z=v==='a'?'a':parseInt(v)});
   return p;
 }
+// ===== ZONE PATTERNS =====
+function addZP(pat){
+  pat=pat||document.getElementById("zoneInput").value.trim();
+  if(!pat||!/^\d{3}$/.test(pat)){showToast("请输入3位数区间比");return}
+  const n=ga().rN;
+  if(pat.split("").reduce((a,b)=>a+parseInt(b),0)!==n){showToast("区间比数位之和必须等于"+n);return}
+  if(zonePatterns.includes(pat)){showToast("已存在此区间比");return}
+  zonePatterns.push(pat);
+  document.getElementById("zoneInput").value="";
+  renderZTags();
+}
+function rmZP(idx){zonePatterns.splice(idx,1);renderZTags()}
+function renderZTags(){
+  const el=document.getElementById("zoneTags");
+  if(zonePatterns.length===0){el.innerHTML="<span style=\"font-size:11px;color:var(--text3)\">点击预设或输入添加</span>";return}
+  el.innerHTML=zonePatterns.map((p,i)=>"<span style=\"display:inline-flex;align-items:center;gap:3px;padding:3px 8px;background:#e8ecff;border-radius:4px;font-size:12px;font-weight:600;color:var(--pri)\">"+p+"<button onclick=\"rmZP("+i+")\" style=\"border:none;background:none;color:var(--pri);cursor:pointer;font-size:14px;line-height:1;padding:0 2px;opacity:.5\">x</button></span>").join("");
+}
+function initZP(){
+  const el=document.getElementById("zonePresets");el.innerHTML="";
+  const arr=ga().rN===6?["222","321","411","312","231","132","123"]:["221","311","131","212","122","113"];
+  arr.forEach(p=>{const b=document.createElement("button");b.textContent=p.split("").join(":");b.style.cssText="font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer;color:var(--text2);margin-right:4px";b.addEventListener("click",()=>addZP(p));el.appendChild(b)});
+  document.getElementById("zoneInput").addEventListener("keydown",function(e){if(e.key==="Enter")addZP()});
+  renderZTags();
+}
 let tt;
 function showToast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),2200)}
 document.querySelectorAll('#gameSwitch button').forEach(b=>b.addEventListener('click',function(){swG(this.dataset.game)}));
@@ -461,6 +536,7 @@ document.getElementById('clearAllSaved').addEventListener('click',clearAllSv);
 renderExc();
 buildUI();
 renderSv();
+initZP();
 </script>
 </body>
 </html>
