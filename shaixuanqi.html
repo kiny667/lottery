@@ -516,7 +516,9 @@ function renderZTags(){
 }
 function initZP(){
   const el=document.getElementById("zonePresets");el.innerHTML="";
-  const arr=ga().rN===6?["222","321","411","312","231","132","123"]:["311","221","212","131","122","113","320","230","302","203"];
+  const all=["222","321","411","312","231","132","123","311","221","212","131","122","113","320","230","302","203"];
+  const need=ga().rN;
+  const arr=all.filter(p=>p.split("").reduce((a,b)=>a+parseInt(b),0)===need);
   arr.forEach(p=>{const b=document.createElement("button");b.textContent=p.split("").join(":");b.style.cssText="font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer;color:var(--text2);margin-right:4px";b.addEventListener("click",()=>addZP(p));el.appendChild(b)});
   document.getElementById("zoneInput").addEventListener("keydown",function(e){if(e.key==="Enter")addZP()});
   renderZTags();
