@@ -338,6 +338,8 @@ function swG(key) {
   buildPickers(); clearAll();
   initBlueNumInputs();
   initZoneInputs(3);
+  const zoneDefaults = key === 'dlt' ? ['221','212','122'] : ['312','321','231'];
+  document.querySelectorAll('.zone-ipt').forEach((el, i) => { if (zoneDefaults[i]) el.value = zoneDefaults[i]; });
   document.getElementById('sRed6').style.display = cfg.pick === 6 ? '' : 'none';
   document.getElementById('sBlue2').style.display = cfg.bPick === 2 ? '' : 'none';
   const n = cfg.max, k = cfg.pick;

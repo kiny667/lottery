@@ -142,7 +142,7 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
 </div>
 <div class=num-panel id=bNumPanel></div>
 </div>
-<div class=sec-hdr>区间分布 <span class=hint>输入3位数，如231=2:3:1，可添加多个</span></div>
+<div class=sec-hdr>区间分布 <span class=hint>当前 <strong id=zoneGameHint style=color:var(--red)>双色球</strong> · 输入3位数，如231=2:3:1，可添加多个</span></div>
 <div class=presets id=znPresets></div>
 <div style=display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:4px>
 <input class=z-ipt id=zoneInput placeholder=231 maxlength=3>
@@ -277,6 +277,7 @@ function getBParityPat(){return getPat("bParityPickers");}
 // ===== ZONE PATTERNS =====
 function renderZnPresets(){
   const el=document.getElementById('znPresets'); el.innerHTML='';
+  const hint=document.getElementById('zoneGameHint'); if(hint) hint.textContent=ga().nm;
   const all=[[2,2,2],[3,2,1],[4,1,1],[3,1,2],[2,3,1],[1,3,2],[1,2,3],[3,1,1],[2,2,1],[2,1,2],[1,3,1],[1,2,2],[1,1,3],[3,2,0],[2,3,0],[3,0,2],[2,0,3]];
   const need=ga().rN;
   const arr=all.filter(([a,b,c])=>a+b+c===need);

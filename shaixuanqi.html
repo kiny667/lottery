@@ -158,7 +158,7 @@ header h1 small{font-size:12px;font-weight:400;color:var(--text3)}
           <span class="badge" id="condBadge">红 6 + 蓝 1</span>
         </div>
         <div id="posContainer"></div>
-        <div class="sec-title">区间比 <small>整体区间分布，如231=2:3:1，可添加多个</small></div>
+        <div class="sec-title">区间比 <small>当前 <strong id="zoneGameHint" style="color:var(--red)">双色球</strong> · 整体区间分布，如231=2:3:1，可添加多个</small></div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px" id="zonePresets"></div>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
           <input id="zoneInput" placeholder="231" maxlength="3" style="width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;outline:none">
@@ -420,7 +420,6 @@ function copySaved(id){
   });
 }
 function doClear() {
-  S.exc.clear();S.bExc.clear();S.res=[];S.cp=0;zonePatterns=[];
   S.exc.clear();S.bExc.clear();S.res=[];S.cp=0;
   buildUI();
   renderExc();
@@ -437,6 +436,7 @@ function swG(game) {
   document.querySelectorAll('#gameSwitch button').forEach(b=>b.classList.remove('on'));
   document.querySelector('#gameSwitch button[data-game="'+game+'"]').classList.add('on');
   doClear();
+  initZP();
 }
 function renderExc() {
   const rEl=document.getElementById('excRedGrid');rEl.innerHTML='';
@@ -516,6 +516,7 @@ function renderZTags(){
 }
 function initZP(){
   const el=document.getElementById("zonePresets");el.innerHTML="";
+  const hint=document.getElementById("zoneGameHint");if(hint)hint.textContent=ga().name;
   const all=["222","321","411","312","231","132","123","311","221","212","131","122","113","320","230","302","203"];
   const need=ga().rN;
   const arr=all.filter(p=>p.split("").reduce((a,b)=>a+parseInt(b),0)===need);
