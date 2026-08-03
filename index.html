@@ -174,19 +174,28 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
 <div style=margin-top:10px><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>路数组合出现次数(Top 20)</div><div class=stat-grid id=routeCombGrid></div></div>
 </div>
 <div class=sec style=margin-top:14px><div class=sec-lbl>奇偶统计 <small>红区</small></div>
-<div class=sec style=margin-top:14px><div class=sec-lbl>奇偶统计 <small>红区</small></div>
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>每位奇偶出现次数</div><table class=st id=parityStatTable></table></div>
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>奇偶组合出现次数(Top 20)</div><div class=stat-grid id=parityCombGrid></div></div>
 </div>
+<div class=sec style=margin-top:14px><div class=sec-lbl>后区路数统计 <small>蓝球/后区</small></div>
 <div class=sl>出现总次数 <span class=nm id=totalBRouteCount>0</span></div>
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>每位路数(0/1/2)出现次数</div><table class=st id=bRouteStatTable></table></div>
 <div style=margin-top:10px><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>路数组合出现次数(Top 10)</div><div class=stat-grid id=bRouteCombGrid></div></div>
 </div>
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>每位奇偶出现次数</div><table class=st id=bParityStatTable></table></div>
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>奇偶组合出现次数(Top 10)</div><div class=stat-grid id=bParityCombGrid></div></div>
-</div>
 <div class=sec style=margin-top:14px><div class=sec-lbl>区间分布统计</div>
 <div><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>区间组合出现次数(Top 20)</div><div class=stat-grid id=zoneCombGrid></div></div>
+</div>
+<div class=sec style=margin-top:14px><div class=sec-lbl>每期指标 <small>奇偶比排位 / 和值 / 跨度</small></div>
+<div class=sl>奇偶比种类 <span class=nm id=parityRankSummary>0</span> | 和值均值 <span class=nm id=sumAvg>0</span> | 跨度均值 <span class=nm id=spanAvg>0</span></div>
+<div style=display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap>
+  <button class="btn btn-sec" id=btnSortParity onclick="setPeriodSort('parity')">按奇偶比排序</button>
+  <button class="btn btn-sec" id=btnSortSum onclick="setPeriodSort('sum')">按和值排序</button>
+  <button class="btn btn-sec" id=btnSortSpan onclick="setPeriodSort('span')">按跨度排序</button>
+</div>
+<div style=margin-top:10px><div style=font-size:13px;font-weight:500;color:#555;margin-bottom:4px>每种奇偶比出现次数排位</div><table class=st id=parityRankTable></table></div>
+<table class=st id=periodStatTable></table>
 </div>
 <div class=sec-lbl>已录入数据 <button style=margin-left:8px;cursor:pointer;font-size:11px;border:none;border-radius:4px;padding:2px 6px;background:#e8e8e8;color:#333 onclick="sortAsc=!sortAsc;renderStats();">期号 ↓</button></div>
   <div class=dl id=dataListContainer><div class=emp style=padding:16px;font-size:12px>暂无数据</div></div>
@@ -406,6 +415,8 @@ function doFilter() {
 let lr = [], cp = 0;
 const PS = 50;
 let sortAsc = false;
+let periodSortKey = 'parity';
+let periodSortAsc = false;
 function renderRes(r, pg) {
   lr = r; const total = r.length, tp = Math.ceil(total / PS) || 1;
   if (pg >= tp) pg = tp - 1; if (pg < 0) pg = 0; cp = pg;
@@ -667,11 +678,12 @@ function genSampleData() {
   const data = getStatsData();
   document.getElementById('dataCount').textContent = data.length;
   if (data.length === 0) {
-    ['redFreqGrid','blueFreqGrid','routeCombGrid','parityCombGrid','parityStatTable','bRouteCombGrid','bParityCombGrid','bParityStatTable','zoneCombGrid'].forEach(id => document.getElementById(id).innerHTML = '');
+    ['redFreqGrid','blueFreqGrid','routeCombGrid','parityCombGrid','parityStatTable','bRouteCombGrid','bParityCombGrid','bParityStatTable','zoneCombGrid','periodStatTable','parityRankTable'].forEach(id => document.getElementById(id).innerHTML = '');
     document.getElementById('routeStatTable').innerHTML = ''; document.getElementById('bRouteStatTable').innerHTML = '';
     document.getElementById('totalRedCount').textContent = '0'; document.getElementById('totalBlueCount').textContent = '0';
     document.getElementById('totalRouteCount').textContent = '0'; document.getElementById('totalBRouteCount').textContent = '0';
     document.getElementById('dataListContainer').innerHTML = '<div class=emp style=padding:16px;font-size:12px>暂无数据</div>';
+    document.getElementById('parityRankSummary').textContent = '0'; document.getElementById('sumAvg').textContent = '0'; document.getElementById('spanAvg').textContent = '0';
     return;
   }
   const rC = {}, bC = {};
@@ -731,6 +743,49 @@ function genSampleData() {
   dH += '</table>';
   document.getElementById('dataListContainer').innerHTML = dH;
   document.querySelectorAll('#dataListContainer .del').forEach(e => { e.addEventListener('click', () => { const idx = parseInt(e.dataset.idx); const d = getStatsData(); if (idx >= 0 && idx < d.length) { d.splice(idx, 1); saveStatsData(d); renderStats(); } }); });
+  // Period metrics: parity ratio rank / sum / span
+  const parityCount = {};
+  const periodRows = data.map(d => {
+    const pr = d.parityR || '';
+    const odd = pr.split('').filter(ch => ch === '奇').length;
+    const ratio = odd + '奇' + (pr.length - odd) + '偶';
+    const sum = d.reds.reduce((a,b)=>a+b, 0);
+    const span = Math.max(...d.reds) - Math.min(...d.reds);
+    parityCount[ratio] = (parityCount[ratio] || 0) + 1;
+    return {period: d.period, ratio, sum, span};
+  });
+  const ratioRanks = Object.keys(parityCount).sort((a,b)=>parityCount[b]-parityCount[a]);
+  const rankMap = {};
+  let lastCnt = -1, lastRank = 0;
+  ratioRanks.forEach((r,i)=>{ if (parityCount[r] !== lastCnt) { lastRank = i + 1; lastCnt = parityCount[r]; } rankMap[r] = lastRank; });
+  let prankTH = '<tr><th>排位</th><th>奇偶比</th><th>出现次数</th><th>占比</th></tr>';
+  ratioRanks.forEach((r,i) => {
+    const cnt = parityCount[r];
+    const pct = (cnt / data.length * 100).toFixed(1);
+    prankTH += '<tr><td>' + rankMap[r] + '</td><td>' + r + '</td><td>' + cnt + '期</td><td>' + pct + '%</td></tr>';
+  });
+  document.getElementById('parityRankTable').innerHTML = prankTH;
+  periodRows.sort((a,b)=>{
+    let va, vb;
+    if (periodSortKey === 'sum') { va = a.sum; vb = b.sum; }
+    else if (periodSortKey === 'span') { va = a.span; vb = b.span; }
+    else { va = rankMap[a.ratio]; vb = rankMap[b.ratio]; }
+    return periodSortAsc ? vb - va : va - vb;
+  });
+  let periodTH = '<tr><th>排位</th><th>期号</th><th>奇偶比</th><th>和值</th><th>跨度</th></tr>';
+  periodRows.forEach(r => {
+    periodTH += '<tr><td>' + rankMap[r.ratio] + '</td><td>' + r.period + '</td><td>' + r.ratio + '</td><td>' + r.sum + '</td><td>' + r.span + '</td></tr>';
+  });
+  document.getElementById('periodStatTable').innerHTML = periodTH;
+  const sumVals = periodRows.map(r=>r.sum), spanVals = periodRows.map(r=>r.span);
+  document.getElementById('parityRankSummary').textContent = Object.keys(parityCount).length + '种';
+  document.getElementById('sumAvg').textContent = (sumVals.reduce((a,b)=>a+b,0)/sumVals.length).toFixed(1);
+  document.getElementById('spanAvg').textContent = (spanVals.reduce((a,b)=>a+b,0)/spanVals.length).toFixed(1);
+}
+function setPeriodSort(key) {
+  if (periodSortKey === key) { periodSortAsc = !periodSortAsc; }
+  else { periodSortKey = key; periodSortAsc = false; }
+  renderStats();
 }
 function renderCombGrid(id, map, limit) {
   limit = limit || 20;
@@ -752,3 +807,7 @@ if (zipts.length >= 1) zipts[0].value = '312';
 if (zipts.length >= 2) zipts[1].value = '321';
 if (zipts.length >= 3) zipts[2].value = '231';
 </script></body></html>
+
+
+
+
