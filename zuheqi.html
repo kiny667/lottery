@@ -298,10 +298,9 @@ function expNums(prefix){const s=numSt[prefix];if(!s||!s.posAllowed)return;
 // ======== 奇偶模式 ========
 function genOePats(n,oc){const ps=[];const pos=Array.from({length:n},(_,i)=>i);for(const op of combos(pos,oc,0)){const p=Array(n).fill('\u5076');for(const i of op)p[i]='\u5947';ps.push(p)}return ps}
 function renderOePats(ps,id){const c=document.getElementById(id);
-  let h='<div class="legend-row"><span class="legend-dot ld-o"></span>\u5947 <span class="legend-dot ld-e"></span>\u5076 &nbsp;\u5171 '+ps.length+' \u79cd</div><div class="pat-grid">';
-  ps.forEach((p,i)=>{h+='<div class="pat-item"><span class="idx">'+(i+1)+'.</span><div class="pos">';p.forEach((ch,j)=>h+='<span class="'+ch+'">'+(j+1)+'</span>');h+='</div></div>'})
-  h+='</div>';c.innerHTML=h}
-function renderOeSum(id,oc,ec,to,te,n){document.getElementById(id).innerHTML='<div class="summary-box"><div class="si"><span class="sil">\u6a21\u5f0f\u6570</span><span class="siv">'+nCr(n,oc)+'</span></div><div class="si"><span class="sil">\u5b9e\u9645\u7ec4\u5408\u6570</span><span class="siv">'+(nCr(to,oc)*nCr(te,ec)).toLocaleString()+'</span></div><div class="si"><span class="sil">\u5947\u53f7\u8303\u56f4</span><span class="siv" style="font-size:12px">'+to+'\u4e2a</span></div><div class="si"><span class="sil">\u5076\u53f7\u8303\u56f4</span><span class="siv" style="font-size:12px">'+te+'\u4e2a</span></div></div>'}
+  let h='<div class="legend-row"><span class="legend-dot ld-o"></span>奇 <span class="legend-dot ld-e"></span>偶 &nbsp;共 '+ps.length+' 种</div><div class="pat-grid">';
+  ps.forEach((p,i)=>{h+='<div class="pat-item"><span class="idx">'+(i+1)+'.</span><span>'+p.join('')+'</span></div>'})
+  h+='</div>';c.innerHTML=h}function renderOeSum(id,oc,ec,to,te,n){document.getElementById(id).innerHTML='<div class="summary-box"><div class="si"><span class="sil">\u6a21\u5f0f\u6570</span><span class="siv">'+nCr(n,oc)+'</span></div><div class="si"><span class="sil">\u5b9e\u9645\u7ec4\u5408\u6570</span><span class="siv">'+(nCr(to,oc)*nCr(te,ec)).toLocaleString()+'</span></div><div class="si"><span class="sil">\u5947\u53f7\u8303\u56f4</span><span class="siv" style="font-size:12px">'+to+'\u4e2a</span></div><div class="si"><span class="sil">\u5076\u53f7\u8303\u56f4</span><span class="siv" style="font-size:12px">'+te+'\u4e2a</span></div></div>'}
 
 let oeNumSt={};
 function genOeNums(prefix,oeNums,oc,ec,n){
