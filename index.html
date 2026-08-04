@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang=zh-CN><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1.0">
 <title>彩票选号助手</title>
 <style>
@@ -98,9 +98,15 @@ h1{font-size:20px;font-weight:600;margin-bottom:16px;display:flex;align-items:ce
   body{padding:12px 8px}.card{padding:14px}
   .inp-row input{width:50px}
   .stat-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}
-}
+}.nav-strip{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}.nav-strip a{padding:5px 12px;border:1px solid #d9d9d9;border-radius:5px;font-size:12px;text-decoration:none;color:#555;transition:all .15s;background:#fff}.nav-strip a:hover{border-color:#4361ee;color:#4361ee;background:#f8f9ff}.nav-strip a.here{background:#4361ee;border-color:#4361ee;color:#fff}
 </style></head><body><div class=app>
 <h1>彩票选号助手</h1>
+<div class="nav-strip">
+<a href="index.html" class="here">选号器</a>
+<a href="zuheqi.html">组合器</a>
+<a href="shaixuanqi.html" target="_blank">筛选器 <span style="font-size:10px">↗</span></a>
+<a href="zuhaoqi.html" target="_blank">组号器 <span style="font-size:10px">↗</span></a>
+</div>
 <div class=game-sw id=gameSwitch><button class=on data-game=ssq>双色球</button><button data-game=dlt>大乐透</button></div>
 <div class=tab-bar id=tabBar><button class=on data-tab=filter>筛选</button><button data-tab=stats>统计</button><button data-tab=save>记录</button></div>
 <div class="tab-con on" id=tabFilter>

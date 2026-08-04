@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>彩票组合器</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f0f2f5;--card:#fff;--text:#1a1a2e;--text2:#555;--text3:#999;--pri:#4361ee;--red:#e63946;--amber:#f0a030;--green:#2ec4b6;--border:#d9d9d9;--radius:8px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{max-width:1040px;margin:0 auto;padding:20px 16px}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+header h1{font-size:20px;font-weight:700}
+.tab-bar{display:flex;gap:0;margin-bottom:16px;background:var(--bg);border-radius:var(--radius);padding:3px;border:1px solid var(--border)}
+.tab-bar button{flex:1;padding:9px 8px;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:all .2s;white-space:nowrap}
+.tab-bar button.on{background:var(--pri);color:#fff}
+.tab-bar button:nth-child(2).on{background:var(--red)}
+.tab-bar button:nth-child(3).on{background:var(--amber)}
+.tab-bar button:nth-child(4).on{background:var(--green)}
+.tab-con{display:none}.tab-con.on{display:block}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 3px rgba(0,0,0,.08);padding:14px 16px;margin-bottom:10px}
+.sec-hdr{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sec-hdr .hint{font-weight:400;color:var(--text3);font-size:11px}
+.pos-row{display:flex;flex-direction:column;gap:5px}
+.pos-item{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pos-item .pl{font-size:12px;color:var(--text3);min-width:28px;font-weight:500}
+.pos-item .pi{width:72px;padding:5px 6px;border:1px solid var(--border);border-radius:5px;font-size:13px;outline:none;text-align:center;font-family:"SF Mono",Consolas,monospace}
+.pos-item .pi:focus{border-color:var(--pri);box-shadow:0 0 0 2px rgba(67,97,238,.1)}
+.pos-item .pi.error{border-color:var(--red)}
+.pos-item .rng{font-size:11px;color:var(--text3)}
+.pos-item .ri{width:62px;padding:5px 4px;border:1px solid var(--border);border-radius:4px;font-size:12px;outline:none;text-align:center;font-family:"SF Mono",Consolas,monospace}
+.pos-item .ri:focus{border-color:var(--pri)}
+.pos-item .ri.error{border-color:var(--red)}
+.pos-item .preview{font-size:11px;color:var(--pri);font-family:"SF Mono",Consolas,monospace;background:#f0f3ff;padding:3px 7px;border-radius:4px;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.game-desc{font-size:12px;color:var(--text3);margin-bottom:8px;line-height:1.5;background:#f8f9fc;padding:6px 10px;border-radius:5px}
+.acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.btn{padding:7px 16px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:4px}
+.btn:active{transform:scale(.97)}
+.btn-pri{background:var(--pri);color:#fff}.btn-pri:hover{background:#3651d4}
+.btn-sec{background:#e8e8e8;color:#333}.btn-sec:hover{background:#d9d9d9}
+.btn-suc{background:var(--green);color:#fff}.btn-suc:hover{background:#25a99d}
+.btn-amb{background:var(--amber);color:#fff}.btn-amb:hover{background:#d8902a}
+.stats-row{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--text2);margin:8px 0}
+.stats-row .num{font-weight:700;color:var(--pri);font-size:15px}
+.res-scroll{max-height:360px;overflow-y:auto;border:1px solid #eee;border-radius:6px;margin-top:6px}
+.res-scroll table{width:100%;border-collapse:collapse;font-size:11px;font-family:"SF Mono",Consolas,monospace}
+.res-scroll th{position:sticky;top:0;background:#f8f9fc;font-weight:600;color:var(--text2);padding:5px 6px;text-align:center;border-bottom:2px solid #e0e0e0;z-index:1}
+.res-scroll td{padding:4px 6px;text-align:center;border-bottom:1px solid #f0f0f0}
+.res-scroll tr:hover td{background:#f8f9ff}
+.ball{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:11px;font-weight:600;color:#fff;flex-shrink:0}
+.ball.r0{background:#2ec4b6}.ball.r1{background:#4361ee}.ball.r2{background:#e63946}
+.ball.odd{background:#4361ee}.ball.even{background:#e63946}
+.pg{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px;flex-wrap:wrap}
+.pg .btn{padding:4px 10px;font-size:11px}.pg .btn:disabled{opacity:.4;cursor:default}
+.pg .pi{font-size:11px;color:var(--text2)}
+.pat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:5px;margin-top:6px}
+.pat-item{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#f8f9fc;border-radius:5px;font-size:12px;font-family:"SF Mono",Consolas,monospace}
+.pat-item:hover{background:#eef0f7}
+.pat-item .pos{display:flex;gap:2px}
+.pat-item .pos span{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:4px;font-size:11px;font-weight:600}
+.pat-item .pos span.奇{background:#4361ee;color:#fff}
+.pat-item .pos span.偶{background:#e63946;color:#fff}
+.pat-item .idx{color:var(--text3);font-size:10px;min-width:16px}
+.summary-box{display:flex;gap:14px;flex-wrap:wrap;padding:10px 12px;background:#f8f9fc;border-radius:6px;font-size:11px}
+.summary-box .si{display:flex;flex-direction:column;gap:1px}
+.summary-box .si .siv{font-weight:700;font-size:14px;color:var(--pri)}
+.summary-box .si .sil{color:var(--text3)}
+.ratio-inp{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.ratio-inp input{padding:5px 6px;border:1px solid var(--border);border-radius:5px;font-size:14px;width:48px;text-align:center;outline:none;font-weight:600}
+.ratio-inp input:focus{border-color:var(--pri);box-shadow:0 0 0 2px rgba(67,97,238,.1)}
+.ratio-inp span{font-size:15px;font-weight:600;color:var(--text2)}
+.ratio-inp input.error{border-color:var(--red)}
+.presets{display:flex;gap:4px;flex-wrap:wrap}
+.presets button{padding:3px 10px;border:1px solid var(--border);border-radius:4px;font-size:11px;cursor:pointer;background:#fff;color:var(--text2);transition:all .15s}
+.presets button:hover{border-color:var(--pri);color:var(--pri)}
+.presets button.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.err-msg{font-size:11px;color:var(--red);min-height:14px;margin-top:3px}
+.note{font-size:11px;color:var(--text3);margin-top:6px;padding:6px 10px;background:#fffbe6;border-radius:4px;border:1px solid #ffe58f}
+.legend-row{display:flex;gap:12px;align-items:center;font-size:10px;color:var(--text3);margin-top:4px}
+.legend-dot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:2px}
+.legend-dot.ld-o{background:var(--pri)}.legend-dot.ld-e{background:var(--red)}
+.divider{height:1px;background:#eee;margin:10px 0}
+</style>
+</head>
+<body>
+<div class="app">
+<header><h1>彩票组合器</h1></header>
+<div class="tab-bar">
+<button class="on" data-tab="dlt-path">大乐透 · 路数组合</button>
+<button data-tab="ssq-path">双色球 · 路数组合</button>
+<button data-tab="dlt-oe">大乐透 · 奇偶组合</button>
+<button data-tab="ssq-oe">双色球 · 奇偶组合</button>
+</div>
+
+<!-- ===== 大乐透路数组合 ===== -->
+<div class="tab-con on" id="tab-dlt-path">
+<div class="card">
+<div class="game-desc">大乐透前区 5 位，路数 = 除3余数。范围可输区号：1区(01-12) 2区(13-24) 3区(25-35)，如「1区.2区」</div>
+<div class="sec-hdr">路数与范围</div>
+<div class="pos-row" id="dltPathInps"></div>
+<div class="err-msg" id="dltPathErr"></div>
+<div class="acts">
+<button class="btn btn-pri" id="btnDltPath">生成路数组合</button>
+<button class="btn btn-sec" id="btnClearDltPath">清空</button>
+</div>
+<div id="dltPathPats"></div>
+<div class="divider"></div>
+<div class="sec-hdr">实际号码组合 <span class="hint">从 01~35 中按路数+范围生成，升序不重复</span></div>
+<div class="acts"><button class="btn btn-suc" id="btnDltNum">生成号码组合</button></div>
+<div class="stats-row" id="dltNumStats" style="display:none"></div>
+<div id="dltNumRes"></div>
+</div>
+</div>
+
+<!-- ===== 双色球路数组合 ===== -->
+<div class="tab-con" id="tab-ssq-path">
+<div class="card">
+<div class="game-desc">双色球红球 6 位，路数 = 除3余数。范围可输区号：1区(01-11) 2区(12-22) 3区(23-33)，如「1区.2区」</div>
+<div class="sec-hdr">路数与范围</div>
+<div class="pos-row" id="ssqPathInps"></div>
+<div class="err-msg" id="ssqPathErr"></div>
+<div class="acts">
+<button class="btn btn-pri" id="btnSsqPath">生成路数组合</button>
+<button class="btn btn-sec" id="btnClearSsqPath">清空</button>
+</div>
+<div id="ssqPathPats"></div>
+<div class="divider"></div>
+<div class="sec-hdr">实际号码组合 <span class="hint">从 01~33 中按路数+范围生成，升序不重复</span></div>
+<div class="acts"><button class="btn btn-suc" id="btnSsqNum">生成号码组合</button></div>
+<div class="stats-row" id="ssqNumStats" style="display:none"></div>
+<div id="ssqNumRes"></div>
+</div>
+</div>
+
+<!-- ===== 大乐透奇偶组合 ===== -->
+<div class="tab-con" id="tab-dlt-oe">
+<div class="card">
+<div class="game-desc">大乐透前区 35 选 5，奇号 18 个（1,3,…,35），偶号 17 个（2,4,…,34）</div>
+<div class="sec-hdr">奇偶比 <span class="hint">和为 5</span></div>
+<div class="ratio-inp">
+<input type="number" id="dltOdd" min="0" max="5" value="3" placeholder="奇"><span>:</span>
+<input type="number" id="dltEven" min="0" max="5" value="2" placeholder="偶">
+<button class="btn btn-pri" id="btnDltOe" style="padding:5px 14px">生成</button>
+</div>
+<div class="err-msg" id="dltOeErr"></div>
+<div class="presets" id="dltOePresets"></div>
+<div id="dltOeSummary"></div>
+<div id="dltOePats"></div>
+<div class="divider"></div>
+<div class="sec-hdr">实际号码组合 <span class="hint">从 01~35 中按奇偶比生成</span></div>
+<div class="acts"><button class="btn btn-suc" id="btnDltOeNum">生成号码组合</button></div>
+<div class="stats-row" id="dltOeNumStats" style="display:none"></div>
+<div id="dltOeNumRes"></div>
+</div>
+</div>
+
+<!-- ===== 双色球奇偶组合 ===== -->
+<div class="tab-con" id="tab-ssq-oe">
+<div class="card">
+<div class="game-desc">双色球红球 33 选 6，奇号 17 个（1,3,…,33），偶号 16 个（2,4,…,32）</div>
+<div class="sec-hdr">奇偶比 <span class="hint">和为 6</span></div>
+<div class="ratio-inp">
+<input type="number" id="ssqOdd" min="0" max="6" value="4" placeholder="奇"><span>:</span>
+<input type="number" id="ssqEven" min="0" max="6" value="2" placeholder="偶">
+<button class="btn btn-pri" id="btnSsqOe" style="padding:5px 14px">生成</button>
+</div>
+<div class="err-msg" id="ssqOeErr"></div>
+<div class="presets" id="ssqOePresets"></div>
+<div id="ssqOeSummary"></div>
+<div id="ssqOePats"></div>
+<div class="divider"></div>
+<div class="sec-hdr">实际号码组合 <span class="hint">从 01~33 中按奇偶比生成</span></div>
+<div class="acts"><button class="btn btn-suc" id="btnSsqOeNum">生成号码组合</button></div>
+<div class="stats-row" id="ssqOeNumStats" style="display:none"></div>
+<div id="ssqOeNumRes"></div>
+</div>
+</div>
+</div>
+
+<script>
+// ======== 工具函数 ========
+const PAD=n=>String(n).padStart(2,'0');
+function nCr(n,k){if(k<0||k>n)return 0;if(k===0||k===n)return 1;let r=1;for(let i=1;i<=k;i++)r=r*(n-i+1)/i;return r}
+function*combos(arr,k,s=0){if(k===0){yield[];return}for(let i=s;i<=arr.length-k;i++)for(const r of combos(arr,k-1,i+1))yield[arr[i],...r]}
+function* cartesian(arrs){if(arrs.length===0){yield[];return}const[f,...r]=arrs;for(const x of f)for(const t of cartesian(r))yield[x,...t]}
+
+// parse "1.2" or "02" -> [0,2]
+function parseInp(raw){const s=new Set();for(const c of raw.replace(/\s/g,''))if(c>='0'&&c<='2')s.add(+c);return[...s].sort()}
+
+// parse range "1-12" or "8" -> {min,max}; empty -> null
+function parseRange(raw,maxN,zones){if(!raw||!raw.trim())return null;
+  const t=raw.trim().replace(/区/g,'');
+  // zone format: digits 1-3, optionally separated by . or ,  e.g. '1.2', '12', '1,2'
+  if(/^[1-3][.,]?[1-3]?[.,]?[1-3]?$/.test(t)){
+    const zs=new Set();for(const c of t)if(c>='1'&&c<='3')zs.add(+c);if(!zs.size)return null;
+    const zarr=[...zs].sort();if(zones){let mn=99,mx=0;for(const z of zarr){const r=ZONES[zones][z-1];if(r[0]<mn)mn=r[0];if(r[1]>mx)mx=r[1]}return{min:mn,max:mx,zones:zarr}}return null}
+  // numeric range: '1-12', '8'
+  const m=t.match(/^(\d{1,2})\s*[-~]\s*(\d{1,2})$/);if(m)return{min:Math.max(1,+m[1]),max:Math.min(maxN,+m[2])};
+  if(/^\d{1,2}$/.test(t)){const v=+t;return{min:Math.max(1,v),max:maxN}};return null}
+
+// number pool by 除3余数
+function pool(max){const r={0:[],1:[],2:[]};for(let n=1;n<=max;n++)r[n%3].push(n);return r}
+// zone definitions
+const ZONES={dlt:[[1,12],[13,24],[25,35]],ssq:[[1,11],[12,22],[23,33]]};
+function zoneNames(game){return ZONES[game].map((z,i)=>(i+1)+'区('+PAD(z[0])+'-'+PAD(z[1])+')')}
+function oddEven(max){const o=[],e=[];for(let n=1;n<=max;n++)n%2?o.push(n):e.push(n);return[o,e]}
+
+// ======== Tab ========
+document.querySelectorAll('.tab-bar button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tab-bar button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  document.querySelectorAll('.tab-con').forEach(x=>x.classList.remove('on'));
+  document.getElementById('tab-'+b.dataset.tab).classList.add('on')
+}))
+
+// ======== 路数预览（含范围和号码映射） ========
+function updatePrev(pathInp,rngInp,byRoute,maxN,game){
+  const it=pathInp.parentElement,prev=it.querySelector('.preview');
+  const raw=pathInp.value.trim();
+  if(!raw){prev.textContent='';pathInp.classList.remove('error');return}
+  const ps=parseInp(raw);
+  if(!ps.length){prev.textContent='无效';pathInp.classList.add('error');return}
+  pathInp.classList.remove('error');
+  const rng=parseRange(rngInp.value,maxN,game);
+  let mn=1,mx=maxN;if(rng){mn=rng.min;mx=rng.max;rngInp.classList.remove('error')}
+  if(rngInp.value.trim()&&!rng)rngInp.classList.add('error');else rngInp.classList.remove('error');
+  const ns=new Set();for(const p of ps)for(const n of byRoute[p])if(n>=mn&&n<=mx)ns.add(n);
+  const arr=[...ns].sort((a,b)=>a-b);
+  const txt=arr.map(PAD).join(',');
+  prev.textContent='{'+ps.join(',')+'}'+(rng?' ['+mn+'-'+mx+']':'')+' \u2192 '+(arr.length>12?txt.slice(0,36)+'\u2026':txt)+' ('+arr.length+'\u4e2a)';
+}
+
+// 获取所有位的{paths,range}，range可能null
+function getPathInputs(containerId,maxN,game){
+  const r=[];for(const it of document.querySelectorAll('#'+containerId+' .pos-item')){
+    const pi=it.querySelector('.pi'),ri=it.querySelector('.ri');
+    const v=pi.value.trim();if(!v)return null;
+    const ps=parseInp(v);if(!ps.length)return null;
+    const rng=parseRange(ri.value,maxN,game);
+    r.push({paths:ps,min:rng?rng.min:1,max:rng?rng.max:maxN});
+  }return r
+}
+
+// 根据每位的paths+range生成允许的号码集
+function buildPosAllowed(inputs,byRoute){
+  return inputs.map(x=>{const s=new Set();for(const p of x.paths)for(const n of byRoute[p])if(n>=x.min&&n<=x.max)s.add(n);return[...s].sort((a,b)=>a-b)})
+}
+
+// ======== 路数模式生成 ========
+let patSt={};
+function genPat(prefix,n,maxN,game){
+  const err=document.getElementById(prefix+'PathErr'),pats=document.getElementById(prefix+'PathPats');
+  err.textContent='';pats.innerHTML='';patSt[prefix]={all:[],pg:0};
+  const inputs=getPathInputs(prefix+'PathInps',maxN,game);
+  if(!inputs||inputs.length!==n){err.textContent='请为每位填写有效路数';return}
+  const pathArrs=inputs.map(x=>x.paths);
+  const total=pathArrs.reduce((p,c)=>p*c.length,1),limit=Math.min(total,10000);let c=0;
+  for(const combo of cartesian(pathArrs)){patSt[prefix].all.push(combo.join(''));c++;if(c>=limit)break}
+  patSt[prefix].total=total;patSt[prefix].inputs=inputs;renderPatPage(prefix,n)
+}
+function renderPatPage(prefix,n){const s=patSt[prefix]||{all:[],pg:0};const el=document.getElementById(prefix+'PathPats');
+  const pg=s.pg,PZ=300,st=pg*PZ,en=Math.min(st+PZ,s.all.length),tp=Math.ceil(s.all.length/PZ),page=s.all.slice(st,en);
+  let h='<div class="stats-row">路数模式：<span class="num">'+s.all.length.toLocaleString()+'</span> / '+s.total.toLocaleString()+' 组</div>';
+  if(s.all.length){h+='<div class="res-scroll"><table><thead><tr><th>#</th>';for(let i=1;i<=n;i++)h+='<th>第'+i+'位</th>';h+='</tr></thead><tbody>';
+    for(let i=0;i<page.length;i++){h+='<tr><td style="color:#999">'+(st+i+1)+'</td>';for(const ch of page[i])h+='<td>'+ch+'</td>';h+='</tr>'}h+='</tbody></table></div>';
+    if(tp>1){h+='<div class="pg"><button class="btn btn-sec" onclick="patSt[\''+prefix+'\'].pg=0;renderPatPage(\''+prefix+'\','+n+')" '+(pg===0?'disabled':'')+'>首页</button><button class="btn btn-sec" onclick="patSt[\''+prefix+'\'].pg--;renderPatPage(\''+prefix+'\','+n+')" '+(pg===0?'disabled':'')+'>上一页</button><span class="pi">'+(pg+1)+'/'+tp+'</span><button class="btn btn-sec" onclick="patSt[\''+prefix+'\'].pg++;renderPatPage(\''+prefix+'\','+n+')" '+(pg>=tp-1?'disabled':'')+'>下一页</button></div>'}}
+  el.innerHTML=h
+}
+
+// ======== 号码组合生成（路数） ========
+function* genNumFromPaths(posAllowed){const k=posAllowed.length;if(!k)return;const sufMx=[];let mx=0;for(let i=k-1;i>=0;i--){mx=Math.max(mx,posAllowed[i][posAllowed[i].length-1]||0);sufMx[i]=mx}
+  function* dfs(idx,prev,cur){if(idx===k){yield[...cur];return}const arr=posAllowed[idx],rem=k-idx-1;for(const n of arr){if(n<=prev)continue;if(rem>0&&n+rem>sufMx[idx+1])break;cur.push(n);yield*dfs(idx+1,n,cur);cur.pop()}}yield* dfs(0,0,[])}
+function countNumFromPaths(posAllowed){if(!posAllowed.length)return 0;let prev=posAllowed[0].map(()=>1);for(let idx=1;idx<posAllowed.length;idx++){const cur=Array(posAllowed[idx].length).fill(0),arr=posAllowed[idx],pa=posAllowed[idx-1];let s=0,pi=0;for(let ci=0;ci<arr.length;ci++){while(pi<pa.length&&pa[pi]<arr[ci])s+=prev[pi++];cur[ci]=s}prev=cur}return prev.reduce((a,b)=>a+b,0)}
+
+let numSt={};
+function genNums(prefix,posAllowed,n,poolMax){
+  const stats=document.getElementById(prefix+'Stats'),res=document.getElementById(prefix+'Res');
+  stats.style.display='none';res.innerHTML='';numSt[prefix]={all:[],pg:0};
+  const total=countNumFromPaths(posAllowed);
+  if(!total){res.innerHTML='<div class="err-msg">无有效组合</div>';return}
+  stats.style.display='flex';stats.innerHTML='号码组合：<span class="num">'+total.toLocaleString()+'</span> 组';
+  const limit=Math.min(total,10000);let c=0;
+  for(const combo of genNumFromPaths(posAllowed)){numSt[prefix].all.push(combo);c++;if(c>=limit)break}
+  numSt[prefix].total=total;numSt[prefix].n=n;numSt[prefix].posAllowed=posAllowed;renderNumPage(prefix)
+}
+function renderNumPage(prefix){const s=numSt[prefix]||{all:[],pg:0};const el=document.getElementById(prefix+'Res');
+  const pg=s.pg,PZ=200,st=pg*PZ,en=Math.min(st+PZ,s.all.length),tp=Math.ceil(s.all.length/PZ),page=s.all.slice(st,en);
+  let h='';if(page.length){h+='<div class="res-scroll"><table><thead><tr><th>#</th>';for(let i=1;i<=s.n;i++)h+='<th>第'+i+'位</th>';h+='</tr></thead><tbody>';
+    for(let i=0;i<page.length;i++){h+='<tr><td style="color:#999">'+(st+i+1)+'</td>';for(const v of page[i])h+='<td>'+PAD(v)+'</td>';h+='</tr>'}h+='</tbody></table></div>';
+    if(tp>1){h+='<div class="pg"><button class="btn btn-sec" onclick="numSt[\''+prefix+'\'].pg=0;renderNumPage(\''+prefix+'\')" '+(pg===0?'disabled':'')+'>首页</button><button class="btn btn-sec" onclick="numSt[\''+prefix+'\'].pg--;renderNumPage(\''+prefix+'\')" '+(pg===0?'disabled':'')+'>上一页</button><span class="pi">'+(pg+1)+'/'+tp+'</span><button class="btn btn-sec" onclick="numSt[\''+prefix+'\'].pg++;renderNumPage(\''+prefix+'\')" '+(pg>=tp-1?'disabled':'')+'>下一页</button></div>'}
+    if(s.total>s.all.length)h+='<button class="btn btn-amb" onclick="expNums(\''+prefix+'\')">导出全部 '+s.total.toLocaleString()+' 组</button>'}
+  el.innerHTML=h
+}
+function expNums(prefix){const s=numSt[prefix];if(!s||!s.posAllowed)return;
+  let csv='序号';for(let i=1;i<=s.n;i++)csv+=',第'+i+'位';csv+='\n';let idx=1;
+  for(const c of genNumFromPaths(s.posAllowed)){csv+=idx+','+c.map(PAD).join(',')+'\n';idx++}
+  const b=new Blob(['\uFEFF'+csv],{type:'text/csv'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=prefix+'_号码.csv';a.click();URL.revokeObjectURL(u)}
+
+// ======== 奇偶模式 ========
+function genOePats(n,oc){const ps=[];const pos=Array.from({length:n},(_,i)=>i);for(const op of combos(pos,oc,0)){const p=Array(n).fill('\u5076');for(const i of op)p[i]='\u5947';ps.push(p)}return ps}
+function renderOePats(ps,id){const c=document.getElementById(id);
+  let h='<div class="legend-row"><span class="legend-dot ld-o"></span>\u5947 <span class="legend-dot ld-e"></span>\u5076 &nbsp;\u5171 '+ps.length+' \u79cd</div><div class="pat-grid">';
+  ps.forEach((p,i)=>{h+='<div class="pat-item"><span class="idx">'+(i+1)+'.</span><div class="pos">';p.forEach((ch,j)=>h+='<span class="'+ch+'">'+(j+1)+'</span>');h+='</div></div>'})
+  h+='</div>';c.innerHTML=h}
+function renderOeSum(id,oc,ec,to,te,n){document.getElementById(id).innerHTML='<div class="summary-box"><div class="si"><span class="sil">\u6a21\u5f0f\u6570</span><span class="siv">'+nCr(n,oc)+'</span></div><div class="si"><span class="sil">\u5b9e\u9645\u7ec4\u5408\u6570</span><span class="siv">'+(nCr(to,oc)*nCr(te,ec)).toLocaleString()+'</span></div><div class="si"><span class="sil">\u5947\u53f7\u8303\u56f4</span><span class="siv" style="font-size:12px">'+to+'\u4e2a</span></div><div class="si"><span class="sil">\u5076\u53f7\u8303\u56f4</span><span class="siv" style="font-size:12px">'+te+'\u4e2a</span></div></div>'}
+
+let oeNumSt={};
+function genOeNums(prefix,oeNums,oc,ec,n){
+  const stats=document.getElementById(prefix+'OeNumStats'),res=document.getElementById(prefix+'OeNumRes');
+  stats.style.display='none';res.innerHTML='';oeNumSt[prefix]={all:[],pg:0};
+  const odds=oeNums[0],evens=oeNums[1],total=nCr(odds.length,oc)*nCr(evens.length,ec);
+  if(!total){res.innerHTML='<div class="err-msg">\u65e0\u6709\u6548\u7ec4\u5408</div>';return}
+  stats.style.display='flex';stats.innerHTML='\u53f7\u7801\u7ec4\u5408\uff1a<span class="num">'+total.toLocaleString()+'</span> \u7ec4';
+  const limit=Math.min(total,10000);let c=0;
+  for(const oddSet of combos(odds,oc,0)){for(const evenSet of combos(evens,ec,0)){const combo=[...oddSet,...evenSet].sort((a,b)=>a-b);oeNumSt[prefix].all.push(combo);c++;if(c>=limit)break}if(c>=limit)break}
+  oeNumSt[prefix].total=total;oeNumSt[prefix].n=n;oeNumSt[prefix].odds=odds;oeNumSt[prefix].evens=evens;oeNumSt[prefix].oc=oc;oeNumSt[prefix].ec=ec;renderOeNumPage(prefix)
+}
+function renderOeNumPage(prefix){const s=oeNumSt[prefix]||{all:[],pg:0};const el=document.getElementById(prefix+'OeNumRes');
+  const pg=s.pg,PZ=200,st=pg*PZ,en=Math.min(st+PZ,s.all.length),tp=Math.ceil(s.all.length/PZ),page=s.all.slice(st,en);
+  let h='';if(page.length){h+='<div class="res-scroll"><table><thead><tr><th>#</th>';for(let i=1;i<=s.n;i++)h+='<th>\u7b2c'+i+'\u4f4d</th>';h+='</tr></thead><tbody>';
+    for(let i=0;i<page.length;i++){h+='<tr><td style="color:#999">'+(st+i+1)+'</td>';for(const v of page[i])h+='<td><span class="ball '+(v%2?'odd':'even')+'">'+PAD(v)+'</span></td>';h+='</tr>'}h+='</tbody></table></div>';
+    if(tp>1){h+='<div class="pg"><button class="btn btn-sec" onclick="oeNumSt[\''+prefix+'\'].pg=0;renderOeNumPage(\''+prefix+'\')" '+(pg===0?'disabled':'')+'>\u9996\u9875</button><button class="btn btn-sec" onclick="oeNumSt[\''+prefix+'\'].pg--;renderOeNumPage(\''+prefix+'\')" '+(pg===0?'disabled':'')+'>\u4e0a\u4e00\u9875</button><span class="pi">'+(pg+1)+'/'+tp+'</span><button class="btn btn-sec" onclick="oeNumSt[\''+prefix+'\'].pg++;renderOeNumPage(\''+prefix+'\')" '+(pg>=tp-1?'disabled':'')+'>\u4e0b\u4e00\u9875</button></div>'}
+    if(s.total>s.all.length)h+='<button class="btn btn-amb" onclick="expOeNums(\''+prefix+'\')">\u5bfc\u51fa\u5168\u90e8 '+s.total.toLocaleString()+' \u7ec4</button>'}
+  el.innerHTML=h
+}
+function expOeNums(prefix){const s=oeNumSt[prefix];if(!s)return;
+  let csv='\u5e8f\u53f7';for(let i=1;i<=s.n;i++)csv+=',\u7b2c'+i+'\u4f4d';csv+='\n';let idx=1;
+  for(const os of combos(s.odds,s.oc,0))for(const es of combos(s.evens,s.ec,0)){csv+=idx+','+[...os,...es].sort((a,b)=>a-b).map(PAD).join(',')+'\n';idx++}
+  const b=new Blob(['\uFEFF'+csv],{type:'text/csv'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=prefix+'_号码.csv';a.click();URL.revokeObjectURL(u)}
+
+// ======== 大乐透 路数 ========
+const DLT_POOL=pool(35),DLT_MAX=35;
+function renderDltPath(){const c=document.getElementById('dltPathInps');c.innerHTML='';
+  for(let i=0;i<5;i++){const d=document.createElement('div');d.className='pos-item';
+    d.innerHTML='<span class="pl">\u7b2c'+(i+1)+'\u4f4d</span><input class="pi" placeholder="\u8def 1.2"><span class="rng">\u8303\u56f4</span><input class="ri" placeholder="\u533a\u57df \u5982 1\u533a.2\u533a"><span class="preview"></span>';
+    const pi=d.querySelector('.pi'),ri=d.querySelector('.ri');
+    pi.addEventListener('input',function(){updatePrev(pi,ri,DLT_POOL,DLT_MAX,'dlt')});
+    ri.addEventListener('input',function(){updatePrev(pi,ri,DLT_POOL,DLT_MAX,'dlt')});
+    c.appendChild(d)}}
+document.getElementById('btnDltPath').addEventListener('click',()=>genPat('dlt',5,DLT_MAX,'dlt'));
+document.getElementById('btnClearDltPath').addEventListener('click',()=>{
+  document.querySelectorAll('#dltPathInps .pi,#dltPathInps .ri').forEach(i=>{i.value='';i.classList.remove('error')});
+  document.querySelectorAll('#dltPathInps .preview').forEach(d=>d.textContent='');
+  document.getElementById('dltPathErr').textContent='';document.getElementById('dltPathPats').innerHTML='';
+  document.getElementById('dltNumStats').style.display='none';document.getElementById('dltNumRes').innerHTML='';
+  patSt['dlt']={all:[],pg:0};numSt['dltNum']={all:[],pg:0}});
+document.getElementById('btnDltNum').addEventListener('click',()=>{
+  const inputs=getPathInputs('dltPathInps',DLT_MAX,'dlt');if(!inputs||inputs.length!==5){document.getElementById('dltNumRes').innerHTML='<div class="err-msg">\u8bf7\u5148\u751f\u6210\u8def\u6570\u7ec4\u5408</div>';return}
+  genNums('dltNum',buildPosAllowed(inputs,DLT_POOL),5,DLT_MAX)});
+
+// ======== 双色球 路数 ========
+const SSQ_POOL=pool(33),SSQ_MAX=33;
+function renderSsqPath(){const c=document.getElementById('ssqPathInps');c.innerHTML='';
+  for(let i=0;i<6;i++){const d=document.createElement('div');d.className='pos-item';
+    d.innerHTML='<span class="pl">\u7b2c'+(i+1)+'\u4f4d</span><input class="pi" placeholder="\u8def 1.2"><span class="rng">\u8303\u56f4</span><input class="ri" placeholder="\u533a\u57df \u5982 1\u533a.2\u533a"><span class="preview"></span>';
+    const pi=d.querySelector('.pi'),ri=d.querySelector('.ri');
+    pi.addEventListener('input',function(){updatePrev(pi,ri,SSQ_POOL,SSQ_MAX,'ssq')});
+    ri.addEventListener('input',function(){updatePrev(pi,ri,SSQ_POOL,SSQ_MAX,'ssq')});
+    c.appendChild(d)}}
+document.getElementById('btnSsqPath').addEventListener('click',()=>genPat('ssq',6,SSQ_MAX,'ssq'));
+document.getElementById('btnClearSsqPath').addEventListener('click',()=>{
+  document.querySelectorAll('#ssqPathInps .pi,#ssqPathInps .ri').forEach(i=>{i.value='';i.classList.remove('error')});
+  document.querySelectorAll('#ssqPathInps .preview').forEach(d=>d.textContent='');
+  document.getElementById('ssqPathErr').textContent='';document.getElementById('ssqPathPats').innerHTML='';
+  document.getElementById('ssqNumStats').style.display='none';document.getElementById('ssqNumRes').innerHTML='';
+  patSt['ssq']={all:[],pg:0};numSt['ssqNum']={all:[],pg:0}});
+document.getElementById('btnSsqNum').addEventListener('click',()=>{
+  const inputs=getPathInputs('ssqPathInps',SSQ_MAX,'ssq');if(!inputs||inputs.length!==6){document.getElementById('ssqNumRes').innerHTML='<div class="err-msg">\u8bf7\u5148\u751f\u6210\u8def\u6570\u7ec4\u5408</div>';return}
+  genNums('ssqNum',buildPosAllowed(inputs,SSQ_POOL),6,SSQ_MAX)});
+
+// ======== 大乐透 奇偶 ========
+const DLT_OE=oddEven(35),DLT_O=DLT_OE[0],DLT_E=DLT_OE[1];
+(function(){const c=document.getElementById('dltOePresets');for(let o=0;o<=5;o++){const e=5-o;const b=document.createElement('button');b.textContent=o+':'+e;b.dataset.o=o;b.onclick=()=>{document.getElementById('dltOdd').value=o;document.getElementById('dltEven').value=e;c.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');runDltOe()};c.appendChild(b)}})();
+function runDltOe(){const oe=+document.getElementById('dltOdd').value,ee=+document.getElementById('dltEven').value,err=document.getElementById('dltOeErr');err.textContent='';document.getElementById('dltOdd').classList.remove('error');document.getElementById('dltEven').classList.remove('error');
+  if(isNaN(oe)||isNaN(ee)){err.textContent='\u8bf7\u8f93\u5165\u6570\u5b57';return}if(oe+ee!==5){err.textContent='\u548c\u5fc5\u987b\u4e3a5';return}
+  renderOeSum('dltOeSummary',oe,ee,DLT_O.length,DLT_E.length,5);renderOePats(genOePats(5,oe),'dltOePats');
+  document.querySelectorAll('#dltOePresets button').forEach(b=>b.classList.toggle('on',+b.dataset.o===oe))}
+document.getElementById('btnDltOe').addEventListener('click',runDltOe);
+document.getElementById('btnDltOeNum').addEventListener('click',()=>{const oe=+document.getElementById('dltOdd').value,ee=+document.getElementById('dltEven').value;if(isNaN(oe)||isNaN(ee)||oe+ee!==5)return;genOeNums('dlt',DLT_OE,oe,ee,5)});
+
+// ======== 双色球 奇偶 ========
+const SSQ_OE=oddEven(33),SSQ_O=SSQ_OE[0],SSQ_E=SSQ_OE[1];
+(function(){const c=document.getElementById('ssqOePresets');for(let o=0;o<=6;o++){const e=6-o;const b=document.createElement('button');b.textContent=o+':'+e;b.dataset.o=o;b.onclick=()=>{document.getElementById('ssqOdd').value=o;document.getElementById('ssqEven').value=e;c.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');runSsqOe()};c.appendChild(b)}})();
+function runSsqOe(){const oe=+document.getElementById('ssqOdd').value,ee=+document.getElementById('ssqEven').value,err=document.getElementById('ssqOeErr');err.textContent='';document.getElementById('ssqOdd').classList.remove('error');document.getElementById('ssqEven').classList.remove('error');
+  if(isNaN(oe)||isNaN(ee)){err.textContent='\u8bf7\u8f93\u5165\u6570\u5b57';return}if(oe+ee!==6){err.textContent='\u548c\u5fc5\u987b\u4e3a6';return}
+  renderOeSum('ssqOeSummary',oe,ee,SSQ_O.length,SSQ_E.length,6);renderOePats(genOePats(6,oe),'ssqOePats');
+  document.querySelectorAll('#ssqOePresets button').forEach(b=>b.classList.toggle('on',+b.dataset.o===oe))}
+document.getElementById('btnSsqOe').addEventListener('click',runSsqOe);
+document.getElementById('btnSsqOeNum').addEventListener('click',()=>{const oe=+document.getElementById('ssqOdd').value,ee=+document.getElementById('ssqEven').value;if(isNaN(oe)||isNaN(ee)||oe+ee!==6)return;genOeNums('ssq',SSQ_OE,oe,ee,6)});
+
+// ======== 初始化 ========
+renderDltPath();renderSsqPath();runDltOe();runSsqOe();
+</script>
+</body>
+</html>
