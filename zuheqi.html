@@ -247,7 +247,7 @@ function getPathInputs(containerId,maxN,game){
 
 // 根据每位的paths+range生成允许的号码集
 function buildPosAllowed(inputs,byRoute,oePat){
-  return inputs.map((x,idx)=>{const s=new Set();for(const p of x.paths)for(const n of byRoute[p])if(n>=x.min&&n<=x.max)if(!oePat||(oePat[idx]?n%2===1:n%2===0))s.add(n);return[...s].sort((a,b)=>a-b)})})
+  return inputs.map((x,idx)=>{const s=new Set();for(const p of x.paths)for(const n of byRoute[p])if(n>=x.min&&n<=x.max)if(!oePat||(oePat[idx]?n%2===1:n%2===0))s.add(n);return[...s].sort((a,b)=>a-b)})}
 
 
 // ======== 路数模式生成 ========
