@@ -346,8 +346,6 @@ document.getElementById('btnClearDltPath').addEventListener('click',()=>{
   patSt['dlt']={all:[],pg:0};numSt['dltNum']={all:[],pg:0}});
 document.getElementById('btnDltNum').addEventListener('click',()=>{
   const inputs=getPathInputs('dltPathInps',DLT_MAX,'dlt');if(!inputs||inputs.length!==5){document.getElementById('dltNumRes').innerHTML='<div class="err-msg">\u8bf7\u5148\u751f\u6210\u8def\u6570\u7ec4\u5408</div>';return}
-  const odd=parseInt(document.getElementById('dltPathOdd').value),even=parseInt(document.getElementById('dltPathEven').value);
-  const oddTarget=(!isNaN(odd)&&!isNaN(even)&&odd+even===5)?odd:null;
   const oePat=curOePat;curOePat=null;const odd=parseInt(document.getElementById('dltPathOdd').value),even=parseInt(document.getElementById('dltPathEven').value);
   const oddTarget=oePat?oePat.reduce((a,b)=>a+b,0):((!isNaN(odd)&&!isNaN(even)&&odd+even===5)?odd:null);
   genNums('dltNum',buildPosAllowed(inputs,DLT_POOL,oePat),5,DLT_MAX,oddTarget)});
@@ -370,8 +368,6 @@ document.getElementById('btnClearSsqPath').addEventListener('click',()=>{
   patSt['ssq']={all:[],pg:0};numSt['ssqNum']={all:[],pg:0}});
 document.getElementById('btnSsqNum').addEventListener('click',()=>{
   const inputs=getPathInputs('ssqPathInps',SSQ_MAX,'ssq');if(!inputs||inputs.length!==6){document.getElementById('ssqNumRes').innerHTML='<div class="err-msg">\u8bf7\u5148\u751f\u6210\u8def\u6570\u7ec4\u5408</div>';return}
-  const odd=parseInt(document.getElementById('ssqPathOdd').value),even=parseInt(document.getElementById('ssqPathEven').value);
-  const oddTarget=(!isNaN(odd)&&!isNaN(even)&&odd+even===6)?odd:null;
   const oePat=curOePat;curOePat=null;const odd=parseInt(document.getElementById('ssqPathOdd').value),even=parseInt(document.getElementById('ssqPathEven').value);
   const oddTarget=oePat?oePat.reduce((a,b)=>a+b,0):((!isNaN(odd)&&!isNaN(even)&&odd+even===6)?odd:null);
   genNums('ssqNum',buildPosAllowed(inputs,SSQ_POOL,oePat),6,SSQ_MAX,oddTarget)});
