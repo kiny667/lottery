@@ -209,6 +209,7 @@ const ZONES={dlt:[[1,12],[13,24],[25,35]],ssq:[[1,11],[12,22],[23,33]]};
 function zoneNames(game){return ZONES[game].map((z,i)=>(i+1)+'区('+PAD(z[0])+'-'+PAD(z[1])+')')}
 function oddEven(max){const o=[],e=[];for(let n=1;n<=max;n++)n%2?o.push(n):e.push(n);return[o,e]}
 
+function switchTab(tabId){var bs=document.querySelectorAll(.tab-bar button);for(var i=0;i<bs.length;i++)bs[i].classList.remove(on);var tb=document.querySelector(.tab-bar button[data-tab=+JSON.stringify(tabId)+]);if(tb)tb.classList.add(on);var cs=document.querySelectorAll(.tab-con);for(var i=0;i<cs.length;i++)cs[i].classList.remove(on);var tc=document.getElementById(	ab-+tabId);if(tc)tc.classList.add(on)}
 // ======== Tab ========
 document.querySelectorAll('.tab-bar button').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.tab-bar button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
@@ -245,9 +246,9 @@ function getPathInputs(containerId,maxN,game){
 }
 
 // 根据每位的paths+range生成允许的号码集
-function buildPosAllowed(inputs,byRoute){
-  return inputs.map(x=>{const s=new Set();for(const p of x.paths)for(const n of byRoute[p])if(n>=x.min&&n<=x.max)s.add(n);return[...s].sort((a,b)=>a-b)})
-}
+function buildPosAllowed(inputs,byRoute,oePat){
+  return inputs.map((x,idx)=>{const s=new Set();for(const p of x.paths)for(const n of byRoute[p])if(n>=x.min&&n<=x.max)if(!oePat||(oePat[idx]?n%2===1:n%2===0))s.add(n);return[...s].sort((a,b)=>a-b)})})
+
 
 // ======== 路数模式生成 ========
 let patSt={};
@@ -275,7 +276,7 @@ function* genNumFromPaths(posAllowed,oddTarget){const k=posAllowed.length;if(!k)
   const oddCnt=posAllowed.map(a=>a.filter(n=>n%2).length);function* dfs(idx,prev,cur,oddSel){if(idx===k){if(oddTarget==null||oddSel===oddTarget)yield[...cur];return}const arr=posAllowed[idx],rem=k-idx-1;const maxMore=oddCnt.slice(idx+1).reduce((a,b)=>a+b,0);for(const n of arr){if(n<=prev)continue;if(rem>0&&n+rem>sufMx[idx+1])break;const isOdd=n%2;if(oddTarget!=null){const newOdd=oddSel+isOdd;if(newOdd>oddTarget)continue;if(newOdd+maxMore<oddTarget)continue;cur.push(n);yield*dfs(idx+1,n,cur,newOdd);cur.pop()}else{cur.push(n);yield*dfs(idx+1,n,cur);cur.pop()}}}yield* dfs(0,0,[],0)}
 function countNumFromPaths(posAllowed,oddTarget){const k=posAllowed.length;if(!k)return 0;if(oddTarget==null){let prev=posAllowed[0].map(()=>1);for(let idx=1;idx<k;idx++){const cur=Array(posAllowed[idx].length).fill(0),arr=posAllowed[idx],pa=posAllowed[idx-1];let s=0,pi=0;for(let ci=0;ci<arr.length;ci++){while(pi<pa.length&&pa[pi]<arr[ci])s+=prev[pi++];cur[ci]=s}prev=cur}return prev.reduce((a,b)=>a+b,0)}const oddFlag=posAllowed.map(a=>a.map(n=>n%2));let dp=[];for(let j=0;j<posAllowed[0].length;j++){const od=oddFlag[0][j];if(!dp[od])dp[od]=0;dp[od]++}for(let idx=1;idx<k;idx++){const ndp=[],arr=posAllowed[idx],pa=posAllowed[idx-1],ofa=oddFlag[idx];for(let ci=0;ci<arr.length;ci++){const od=ofa[ci];let pi=0;while(pi<pa.length&&pa[pi]<arr[ci]){for(let oo=0;oo<=oddTarget;oo++){const key=oo*1000+pi;if(dp[key]){const no=oo+od;if(no<=oddTarget){const nk=no*1000+ci;if(!ndp[nk])ndp[nk]=0;ndp[nk]+=dp[key]}}}pi++}}dp=ndp}let total=0;const last=posAllowed[k-1];for(let ci=0;ci<last.length;ci++){const key=oddTarget*1000+ci;if(dp[key])total+=dp[key]}return total}
 
-let numSt={};
+let numSt={};let curOePat=null;
 function genNums(prefix,posAllowed,n,poolMax,oddTarget){
   const stats=document.getElementById(prefix+'Stats'),res=document.getElementById(prefix+'Res');
   stats.style.display='none';res.innerHTML='';numSt[prefix]={all:[],pg:0};
@@ -301,10 +302,7 @@ function expNums(prefix){const s=numSt[prefix];if(!s||!s.posAllowed)return;
 
 // ======== 奇偶模式 ========
 function genOePats(n,oc){const ps=[];const pos=Array.from({length:n},(_,i)=>i);for(const op of combos(pos,oc,0)){const p=Array(n).fill('\u5076');for(const i of op)p[i]='\u5947';ps.push(p)}return ps}
-function renderOePats(ps,id){const c=document.getElementById(id);
-  let h='<div class="legend-row"><span class="legend-dot ld-o"></span>奇 <span class="legend-dot ld-e"></span>偶 &nbsp;共 '+ps.length+' 种</div><div class="pat-grid">';
-  ps.forEach((p,i)=>{h+='<div class="pat-item"><span class="idx">'+(i+1)+'.</span><span>'+p.join('')+'</span></div>'})
-  h+='</div>';c.innerHTML=h}function renderOeSum(id,oc,ec,to,te,n){document.getElementById(id).innerHTML='<div class="summary-box"><div class="si"><span class="sil">\u6a21\u5f0f\u6570</span><span class="siv">'+nCr(n,oc)+'</span></div><div class="si"><span class="sil">\u5b9e\u9645\u7ec4\u5408\u6570</span><span class="siv">'+(nCr(to,oc)*nCr(te,ec)).toLocaleString()+'</span></div><div class="si"><span class="sil">\u5947\u53f7\u8303\u56f4</span><span class="siv" style="font-size:12px">'+to+'\u4e2a</span></div><div class="si"><span class="sil">\u5076\u53f7\u8303\u56f4</span><span class="siv" style="font-size:12px">'+te+'\u4e2a</span></div></div>'}
+function renderOePats(ps,id,game,pick){const c=document.getElementById(id);let h='<div class="legend-row"><span class="legend-dot ld-o"></span>奇 <span class="legend-dot ld-e"></span>偶 共 '+ps.length+' 种</div><div class="pat-grid">';ps.forEach((p,i)=>{const oddCnt=p.filter(function(c){return c==='奇'}).length;const patStr=p.join('');h+='<div class="pat-item"><span class="idx">'+(i+1)+'.</span><span>'+patStr+'</span><button class="btn btn-amb" style="margin-left:auto;padding:3px 8px;font-size:10px" onclick="switchTab(\x27'+game+'-path\x27);document.getElementById(\x27'+game+'PathOdd\x27).value='+oddCnt+';document.getElementById(\x27'+game+'PathEven\x27).value='+(pick-oddCnt)+';curOePat='+JSON.stringify(p.map(function(c){return c==='奇'?1:0}))+';document.getElementById(\x27'+game+'NumRes\x27).innerHTML=\x27<div class=note>已载入奇偶模式：'+patStr+'，请填写路数后生成号码</div>\x27">用此模式</button></div>'});h+='</div>';c.innerHTML=h}function renderOeSum(id,oc,ec,to,te,n){document.getElementById(id).innerHTML='<div class="summary-box"><div class="si"><span class="sil">\u6a21\u5f0f\u6570</span><span class="siv">'+nCr(n,oc)+'</span></div><div class="si"><span class="sil">\u5b9e\u9645\u7ec4\u5408\u6570</span><span class="siv">'+(nCr(to,oc)*nCr(te,ec)).toLocaleString()+'</span></div><div class="si"><span class="sil">\u5947\u53f7\u8303\u56f4</span><span class="siv" style="font-size:12px">'+to+'\u4e2a</span></div><div class="si"><span class="sil">\u5076\u53f7\u8303\u56f4</span><span class="siv" style="font-size:12px">'+te+'\u4e2a</span></div></div>'}
 
 let oeNumSt={};
 function genOeNums(prefix,oeNums,oc,ec,n){
@@ -350,7 +348,9 @@ document.getElementById('btnDltNum').addEventListener('click',()=>{
   const inputs=getPathInputs('dltPathInps',DLT_MAX,'dlt');if(!inputs||inputs.length!==5){document.getElementById('dltNumRes').innerHTML='<div class="err-msg">\u8bf7\u5148\u751f\u6210\u8def\u6570\u7ec4\u5408</div>';return}
   const odd=parseInt(document.getElementById('dltPathOdd').value),even=parseInt(document.getElementById('dltPathEven').value);
   const oddTarget=(!isNaN(odd)&&!isNaN(even)&&odd+even===5)?odd:null;
-  genNums('dltNum',buildPosAllowed(inputs,DLT_POOL),5,DLT_MAX,oddTarget)});
+  const oePat=curOePat;curOePat=null;const odd=parseInt(document.getElementById('dltPathOdd').value),even=parseInt(document.getElementById('dltPathEven').value);
+  const oddTarget=oePat?oePat.reduce((a,b)=>a+b,0):((!isNaN(odd)&&!isNaN(even)&&odd+even===5)?odd:null);
+  genNums('dltNum',buildPosAllowed(inputs,DLT_POOL,oePat),5,DLT_MAX,oddTarget)});
 
 // ======== 双色球 路数 ========
 const SSQ_POOL=pool(33),SSQ_MAX=33;
@@ -372,14 +372,16 @@ document.getElementById('btnSsqNum').addEventListener('click',()=>{
   const inputs=getPathInputs('ssqPathInps',SSQ_MAX,'ssq');if(!inputs||inputs.length!==6){document.getElementById('ssqNumRes').innerHTML='<div class="err-msg">\u8bf7\u5148\u751f\u6210\u8def\u6570\u7ec4\u5408</div>';return}
   const odd=parseInt(document.getElementById('ssqPathOdd').value),even=parseInt(document.getElementById('ssqPathEven').value);
   const oddTarget=(!isNaN(odd)&&!isNaN(even)&&odd+even===6)?odd:null;
-  genNums('ssqNum',buildPosAllowed(inputs,SSQ_POOL),6,SSQ_MAX,oddTarget)});
+  const oePat=curOePat;curOePat=null;const odd=parseInt(document.getElementById('ssqPathOdd').value),even=parseInt(document.getElementById('ssqPathEven').value);
+  const oddTarget=oePat?oePat.reduce((a,b)=>a+b,0):((!isNaN(odd)&&!isNaN(even)&&odd+even===6)?odd:null);
+  genNums('ssqNum',buildPosAllowed(inputs,SSQ_POOL,oePat),6,SSQ_MAX,oddTarget)});
 
 // ======== 大乐透 奇偶 ========
 const DLT_OE=oddEven(35),DLT_O=DLT_OE[0],DLT_E=DLT_OE[1];
 (function(){const c=document.getElementById('dltOePresets');for(let o=0;o<=5;o++){const e=5-o;const b=document.createElement('button');b.textContent=o+':'+e;b.dataset.o=o;b.onclick=()=>{document.getElementById('dltOdd').value=o;document.getElementById('dltEven').value=e;c.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');runDltOe()};c.appendChild(b)}})();
 function runDltOe(){const oe=+document.getElementById('dltOdd').value,ee=+document.getElementById('dltEven').value,err=document.getElementById('dltOeErr');err.textContent='';document.getElementById('dltOdd').classList.remove('error');document.getElementById('dltEven').classList.remove('error');
   if(isNaN(oe)||isNaN(ee)){err.textContent='\u8bf7\u8f93\u5165\u6570\u5b57';return}if(oe+ee!==5){err.textContent='\u548c\u5fc5\u987b\u4e3a5';return}
-  renderOeSum('dltOeSummary',oe,ee,DLT_O.length,DLT_E.length,5);renderOePats(genOePats(5,oe),'dltOePats');
+  renderOeSum('dltOeSummary',oe,ee,DLT_O.length,DLT_E.length,5);renderOePats(genOePats(5,oe),'dltOePats','dlt',5);
   document.querySelectorAll('#dltOePresets button').forEach(b=>b.classList.toggle('on',+b.dataset.o===oe))}
 document.getElementById('btnDltOe').addEventListener('click',runDltOe);
 document.getElementById('btnDltOeNum').addEventListener('click',()=>{const oe=+document.getElementById('dltOdd').value,ee=+document.getElementById('dltEven').value;if(isNaN(oe)||isNaN(ee)||oe+ee!==5)return;genOeNums('dlt',DLT_OE,oe,ee,5)});
@@ -389,7 +391,7 @@ const SSQ_OE=oddEven(33),SSQ_O=SSQ_OE[0],SSQ_E=SSQ_OE[1];
 (function(){const c=document.getElementById('ssqOePresets');for(let o=0;o<=6;o++){const e=6-o;const b=document.createElement('button');b.textContent=o+':'+e;b.dataset.o=o;b.onclick=()=>{document.getElementById('ssqOdd').value=o;document.getElementById('ssqEven').value=e;c.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');runSsqOe()};c.appendChild(b)}})();
 function runSsqOe(){const oe=+document.getElementById('ssqOdd').value,ee=+document.getElementById('ssqEven').value,err=document.getElementById('ssqOeErr');err.textContent='';document.getElementById('ssqOdd').classList.remove('error');document.getElementById('ssqEven').classList.remove('error');
   if(isNaN(oe)||isNaN(ee)){err.textContent='\u8bf7\u8f93\u5165\u6570\u5b57';return}if(oe+ee!==6){err.textContent='\u548c\u5fc5\u987b\u4e3a6';return}
-  renderOeSum('ssqOeSummary',oe,ee,SSQ_O.length,SSQ_E.length,6);renderOePats(genOePats(6,oe),'ssqOePats');
+  renderOeSum('ssqOeSummary',oe,ee,SSQ_O.length,SSQ_E.length,6);renderOePats(genOePats(6,oe),'ssqOePats','ssq',6);
   document.querySelectorAll('#ssqOePresets button').forEach(b=>b.classList.toggle('on',+b.dataset.o===oe))}
 document.getElementById('btnSsqOe').addEventListener('click',runSsqOe);
 document.getElementById('btnSsqOeNum').addEventListener('click',()=>{const oe=+document.getElementById('ssqOdd').value,ee=+document.getElementById('ssqEven').value;if(isNaN(oe)||isNaN(ee)||oe+ee!==6)return;genOeNums('ssq',SSQ_OE,oe,ee,6)});
