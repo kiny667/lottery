@@ -105,7 +105,9 @@ header h1{font-size:20px;font-weight:700}
 </div>
 <div id="dltPathPats"></div>
 <div class="divider"></div>
-<div class="sec-hdr">实际号码组合 <span class="hint">从 01~35 中按路数+范围生成，升序不重复</span></div>
+<div class="sec-hdr">实际号码组合 <div class="sec-hdr">奇偶过滤 <span class="hint">可选，进一步缩小范围</span></div>
+<div class="ratio-inp"><input type="number" id="dltPathOdd" min="0" max="5" placeholder="奇" style="width:40px"><span>:</span><input type="number" id="dltPathEven" min="0" max="5" placeholder="偶" style="width:40px"><span class="hint" style="font-size:11px;color:var(--text3)">不填则不限制奇偶</span></div>
+<div class="sec-hdr" style="margin-top:8px">实际号码组合 <span class="hint">从 01~35 中按路数+范围+奇偶比生成，升序不重复</span></div>
 <div class="acts"><button class="btn btn-suc" id="btnDltNum">生成号码组合</button></div>
 <div class="stats-row" id="dltNumStats" style="display:none"></div>
 <div id="dltNumRes"></div>
@@ -147,7 +149,9 @@ header h1{font-size:20px;font-weight:700}
 </div>
 <div id="ssqPathPats"></div>
 <div class="divider"></div>
-<div class="sec-hdr">实际号码组合 <span class="hint">从 01~33 中按路数+范围生成，升序不重复</span></div>
+<div class="sec-hdr">实际号码组合 <div class="sec-hdr">奇偶过滤 <span class="hint">可选，进一步缩小范围</span></div>
+<div class="ratio-inp"><input type="number" id="ssqPathOdd" min="0" max="6" placeholder="奇" style="width:40px"><span>:</span><input type="number" id="ssqPathEven" min="0" max="6" placeholder="偶" style="width:40px"><span class="hint" style="font-size:11px;color:var(--text3)">不填则不限制奇偶</span></div>
+<div class="sec-hdr" style="margin-top:8px">实际号码组合 <span class="hint">从 01~33 中按路数+范围+奇偶比生成，升序不重复</span></div>
 <div class="acts"><button class="btn btn-suc" id="btnSsqNum">生成号码组合</button></div>
 <div class="stats-row" id="ssqNumStats" style="display:none"></div>
 <div id="ssqNumRes"></div>
@@ -267,20 +271,20 @@ function renderPatPage(prefix,n){const s=patSt[prefix]||{all:[],pg:0};const el=d
 }
 
 // ======== 号码组合生成（路数） ========
-function* genNumFromPaths(posAllowed){const k=posAllowed.length;if(!k)return;const sufMx=[];let mx=0;for(let i=k-1;i>=0;i--){mx=Math.max(mx,posAllowed[i][posAllowed[i].length-1]||0);sufMx[i]=mx}
-  function* dfs(idx,prev,cur){if(idx===k){yield[...cur];return}const arr=posAllowed[idx],rem=k-idx-1;for(const n of arr){if(n<=prev)continue;if(rem>0&&n+rem>sufMx[idx+1])break;cur.push(n);yield*dfs(idx+1,n,cur);cur.pop()}}yield* dfs(0,0,[])}
-function countNumFromPaths(posAllowed){if(!posAllowed.length)return 0;let prev=posAllowed[0].map(()=>1);for(let idx=1;idx<posAllowed.length;idx++){const cur=Array(posAllowed[idx].length).fill(0),arr=posAllowed[idx],pa=posAllowed[idx-1];let s=0,pi=0;for(let ci=0;ci<arr.length;ci++){while(pi<pa.length&&pa[pi]<arr[ci])s+=prev[pi++];cur[ci]=s}prev=cur}return prev.reduce((a,b)=>a+b,0)}
+function* genNumFromPaths(posAllowed,oddTarget){const k=posAllowed.length;if(!k)return;const sufMx=[];let mx=0;for(let i=k-1;i>=0;i--){mx=Math.max(mx,posAllowed[i][posAllowed[i].length-1]||0);sufMx[i]=mx}
+  const oddCnt=posAllowed.map(a=>a.filter(n=>n%2).length);function* dfs(idx,prev,cur,oddSel){if(idx===k){if(oddTarget==null||oddSel===oddTarget)yield[...cur];return}const arr=posAllowed[idx],rem=k-idx-1;const maxMore=oddCnt.slice(idx+1).reduce((a,b)=>a+b,0);for(const n of arr){if(n<=prev)continue;if(rem>0&&n+rem>sufMx[idx+1])break;const isOdd=n%2;if(oddTarget!=null){const newOdd=oddSel+isOdd;if(newOdd>oddTarget)continue;if(newOdd+maxMore<oddTarget)continue;cur.push(n);yield*dfs(idx+1,n,cur,newOdd);cur.pop()}else{cur.push(n);yield*dfs(idx+1,n,cur);cur.pop()}}}yield* dfs(0,0,[],0)}
+function countNumFromPaths(posAllowed,oddTarget){const k=posAllowed.length;if(!k)return 0;if(oddTarget==null){let prev=posAllowed[0].map(()=>1);for(let idx=1;idx<k;idx++){const cur=Array(posAllowed[idx].length).fill(0),arr=posAllowed[idx],pa=posAllowed[idx-1];let s=0,pi=0;for(let ci=0;ci<arr.length;ci++){while(pi<pa.length&&pa[pi]<arr[ci])s+=prev[pi++];cur[ci]=s}prev=cur}return prev.reduce((a,b)=>a+b,0)}const oddFlag=posAllowed.map(a=>a.map(n=>n%2));let dp=[];for(let j=0;j<posAllowed[0].length;j++){const od=oddFlag[0][j];if(!dp[od])dp[od]=0;dp[od]++}for(let idx=1;idx<k;idx++){const ndp=[],arr=posAllowed[idx],pa=posAllowed[idx-1],ofa=oddFlag[idx];for(let ci=0;ci<arr.length;ci++){const od=ofa[ci];let pi=0;while(pi<pa.length&&pa[pi]<arr[ci]){for(let oo=0;oo<=oddTarget;oo++){const key=oo*1000+pi;if(dp[key]){const no=oo+od;if(no<=oddTarget){const nk=no*1000+ci;if(!ndp[nk])ndp[nk]=0;ndp[nk]+=dp[key]}}}pi++}}dp=ndp}let total=0;const last=posAllowed[k-1];for(let ci=0;ci<last.length;ci++){const key=oddTarget*1000+ci;if(dp[key])total+=dp[key]}return total}
 
 let numSt={};
-function genNums(prefix,posAllowed,n,poolMax){
+function genNums(prefix,posAllowed,n,poolMax,oddTarget){
   const stats=document.getElementById(prefix+'Stats'),res=document.getElementById(prefix+'Res');
   stats.style.display='none';res.innerHTML='';numSt[prefix]={all:[],pg:0};
-  const total=countNumFromPaths(posAllowed);
+  const total=countNumFromPaths(posAllowed,oddTarget);
   if(!total){res.innerHTML='<div class="err-msg">无有效组合</div>';return}
-  stats.style.display='flex';stats.innerHTML='号码组合：<span class="num">'+total.toLocaleString()+'</span> 组';
+  stats.style.display='flex';stats.innerHTML='号码组合：<span class="num">'+total.toLocaleString()+'</span> 组'+(oddTarget!=null?'（奇偶比 '+oddTarget+':'+(n-oddTarget)+'）':'');
   const limit=Math.min(total,10000);let c=0;
-  for(const combo of genNumFromPaths(posAllowed)){numSt[prefix].all.push(combo);c++;if(c>=limit)break}
-  numSt[prefix].total=total;numSt[prefix].n=n;numSt[prefix].posAllowed=posAllowed;renderNumPage(prefix)
+  for(const combo of genNumFromPaths(posAllowed,oddTarget)){numSt[prefix].all.push(combo);c++;if(c>=limit)break}
+  numSt[prefix].total=total;numSt[prefix].n=n;numSt[prefix].posAllowed=posAllowed;numSt[prefix].oddTarget=oddTarget;renderNumPage(prefix)
 }
 function renderNumPage(prefix){const s=numSt[prefix]||{all:[],pg:0};const el=document.getElementById(prefix+'Res');
   const pg=s.pg,PZ=200,st=pg*PZ,en=Math.min(st+PZ,s.all.length),tp=Math.ceil(s.all.length/PZ),page=s.all.slice(st,en);
@@ -292,7 +296,7 @@ function renderNumPage(prefix){const s=numSt[prefix]||{all:[],pg:0};const el=doc
 }
 function expNums(prefix){const s=numSt[prefix];if(!s||!s.posAllowed)return;
   let csv='序号';for(let i=1;i<=s.n;i++)csv+=',第'+i+'位';csv+='\n';let idx=1;
-  for(const c of genNumFromPaths(s.posAllowed)){csv+=idx+','+c.map(PAD).join(',')+'\n';idx++}
+  for(const c of genNumFromPaths(s.posAllowed,s.oddTarget)){csv+=idx+','+c.map(PAD).join(',')+'\n';idx++}
   const b=new Blob(['\uFEFF'+csv],{type:'text/csv'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=prefix+'_号码.csv';a.click();URL.revokeObjectURL(u)}
 
 // ======== 奇偶模式 ========
@@ -344,7 +348,9 @@ document.getElementById('btnClearDltPath').addEventListener('click',()=>{
   patSt['dlt']={all:[],pg:0};numSt['dltNum']={all:[],pg:0}});
 document.getElementById('btnDltNum').addEventListener('click',()=>{
   const inputs=getPathInputs('dltPathInps',DLT_MAX,'dlt');if(!inputs||inputs.length!==5){document.getElementById('dltNumRes').innerHTML='<div class="err-msg">\u8bf7\u5148\u751f\u6210\u8def\u6570\u7ec4\u5408</div>';return}
-  genNums('dltNum',buildPosAllowed(inputs,DLT_POOL),5,DLT_MAX)});
+  const odd=parseInt(document.getElementById('dltPathOdd').value),even=parseInt(document.getElementById('dltPathEven').value);
+  const oddTarget=(!isNaN(odd)&&!isNaN(even)&&odd+even===5)?odd:null;
+  genNums('dltNum',buildPosAllowed(inputs,DLT_POOL),5,DLT_MAX,oddTarget)});
 
 // ======== 双色球 路数 ========
 const SSQ_POOL=pool(33),SSQ_MAX=33;
@@ -364,7 +370,9 @@ document.getElementById('btnClearSsqPath').addEventListener('click',()=>{
   patSt['ssq']={all:[],pg:0};numSt['ssqNum']={all:[],pg:0}});
 document.getElementById('btnSsqNum').addEventListener('click',()=>{
   const inputs=getPathInputs('ssqPathInps',SSQ_MAX,'ssq');if(!inputs||inputs.length!==6){document.getElementById('ssqNumRes').innerHTML='<div class="err-msg">\u8bf7\u5148\u751f\u6210\u8def\u6570\u7ec4\u5408</div>';return}
-  genNums('ssqNum',buildPosAllowed(inputs,SSQ_POOL),6,SSQ_MAX)});
+  const odd=parseInt(document.getElementById('ssqPathOdd').value),even=parseInt(document.getElementById('ssqPathEven').value);
+  const oddTarget=(!isNaN(odd)&&!isNaN(even)&&odd+even===6)?odd:null;
+  genNums('ssqNum',buildPosAllowed(inputs,SSQ_POOL),6,SSQ_MAX,oddTarget)});
 
 // ======== 大乐透 奇偶 ========
 const DLT_OE=oddEven(35),DLT_O=DLT_OE[0],DLT_E=DLT_OE[1];
