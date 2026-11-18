@@ -212,6 +212,14 @@
   }
   .notice b{color:#7a5c2a}
   .recent{margin-bottom:16px}
+  .adddraw{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:16px;
+  }
+  .adlab{font-size:11.5px;color:var(--muted)}
+  .adddraw input{width:124px;flex:0 0 auto}
+  .adddraw .btn{height:34px;padding:0 14px}
+  .adhint{font-size:11px}
   .recent-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap}
   .recent-head b{font-size:12.5px}
   .recent-list{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
@@ -393,6 +401,14 @@
         <span class="muted" id="recentMeta"></span>
       </div>
       <div class="recent-list" id="recentList"></div>
+    </div>
+
+    <div class="adddraw">
+      <span class="adlab">手动加一期</span>
+      <input id="addIssue" placeholder="期号" inputmode="numeric" autocomplete="off">
+      <input id="addCode" placeholder="开奖号，如 067" inputmode="numeric" autocomplete="off">
+      <button class="btn primary" id="btnAddDraw">加到历史</button>
+      <span class="muted adhint">期号按下一期预填、可改；加完会同步到账本判奖</span>
     </div>
 
     <div class="charts">
@@ -1255,6 +1271,52 @@ function mergeHistory(rows) {
   state.history = [...map.values()].sort(historyCmp);
   return added;
 }
+function nextIssue() {
+  const h = state.history || [];
+  if (!h.length) return '';
+  const s = String(h[0][0] || '');
+  if (!/^\d{4,7}$/.test(s)) return '';
+  const yyStr = s.slice(0, s.length - 3);
+  const seq = Number(s.slice(-3));
+  if (!Number.isFinite(seq) || seq >= 999) return '';
+  return yyStr + String(seq + 1).padStart(3, '0');
+}
+
+function addDrawToHistory() {
+  const issue = ($('addIssue').value || '').trim();
+  const code = String($('addCode').value || '').replace(/\D/g, '');
+  if (!/^\d{4,7}$/.test(issue)) {
+    toast('期号要 4-7 位数字，比如 26307');
+    $('addIssue').focus();
+    return;
+  }
+  if (!/^\d{3}$/.test(code)) {
+    toast('开奖号要 3 位数字，有前导 0 也要输，比如 067');
+    $('addCode').focus();
+    return;
+  }
+
+  const map = new Map(state.history.map(r => [keyOfRow(r), r]));
+  const key = 'i:' + issue;
+  const old = map.get(key);
+  const date = (old && old[2]) ? old[2] : ymd(new Date());
+  map.set(key, [issue, code, date]);
+  state.history = [...map.values()].sort(historyCmp);
+
+  // 账本里有这一期就顺手同步，省得再填一次
+  let judged = false;
+  if (state.slips.some(s => s.issue === issue)) {
+    state.draws[issue] = code;
+    judged = true;
+  }
+
+  saveState();
+  renderAll();
+  $('addCode').value = '';
+  $('addIssue').value = nextIssue();
+  toast((old ? '已更新 ' : '已加入历史 ') + issue + ' ' + code + (judged ? '，账本已同步判奖' : ''));
+}
+
 function parseHistoryText(text) {
   const out = [];
   for (const line of String(text || '').split(/\r?\n/)) {
@@ -1331,6 +1393,7 @@ function renderAll() {
   renderBudgetChip();
   renderHistory();
   renderRecent();
+  if ($('addIssue').value.trim() === '') $('addIssue').value = nextIssue();
   renderGenOut();
 }
 
@@ -1762,11 +1825,15 @@ function init() {
   });
 
   // 历史数据
+  $('btnAddDraw').addEventListener('click', addDrawToHistory);
+  $('addCode').addEventListener('keydown', e => { if (e.key === 'Enter') addDrawToHistory(); });
+  $('addIssue').addEventListener('keydown', e => { if (e.key === 'Enter') $('addCode').focus(); });
   $('btnHistImport').addEventListener('click', () => {
     const rows = parseHistoryText($('histPaste').value);
     if (!rows.length) { toast('没解析出有效记录，检查一下格式'); return; }
     const added = mergeHistory(rows);
     saveState(); renderAll();
+    $('addIssue').value = nextIssue();
     $('histPaste').value = '';
     $('histPasteHint').textContent = '';
     toast(added ? ('已导入 ' + added + ' 期') : '这些期号都已经有了');
@@ -1781,6 +1848,7 @@ function init() {
     if (!confirm('把历史数据恢复成内置的 ' + HISTORY_SEED.length + ' 期？你自己导入的会丢掉。')) return;
     state.history = HISTORY_SEED.map(r => r.slice());
     saveState(); renderAll();
+    $('addIssue').value = nextIssue();
     toast('已恢复内置数据');
   });
 
