@@ -89,6 +89,8 @@
   .row{
     display:grid;grid-template-columns:42px minmax(0,1fr) 30px;gap:8px;align-items:center;margin-bottom:8px;
   }
+  .danrow{grid-template-columns:42px minmax(0,1fr)}
+  .danrow select{max-width:220px}
   .row:last-of-type{margin-bottom:0}
   .rowlab{font-size:12px;color:var(--muted);text-align:right;letter-spacing:1px}
   .digits{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px}
@@ -298,7 +300,7 @@
       <h2>选号</h2>
       <div class="tabs">
         <button class="tab on" data-tab="straight">直选</button>
-        <button class="tab" data-tab="group">组选</button>
+        <button class="tab" data-tab="group">组选复式</button>
       </div>
     </div>
     <div id="padWrap"></div>
@@ -536,6 +538,27 @@ function straightCount(a, b, c) { return a.length * b.length * c.length; }
 function g3Count(n) { return n >= 2 ? n * (n - 1) : 0; }
 function g6Count(n) { return nCk(n, 3); }
 
+/* 胆拖：胆码必出，其余从拖码里凑 */
+function g3CountWithDan(m) { return m >= 1 ? 2 * m : 0; }
+function g6CountWithDan(m) { return nCk(m, 2); }
+function g3CodesWithDan(dan, pool) {
+  const out = [];
+  for (const t of pool) {
+    if (t === dan) continue;
+    out.push([dan, dan, t].sort((x, y) => x - y).join(''));
+    out.push([t, t, dan].sort((x, y) => x - y).join(''));
+  }
+  return out;
+}
+function g6CodesWithDan(dan, pool) {
+  const drag = pool.filter(t => t !== dan).sort((a, b) => a - b);
+  const out = [];
+  for (let i = 0; i < drag.length; i++)
+    for (let j = i + 1; j < drag.length; j++)
+      out.push([dan, drag[i], drag[j]].sort((x, y) => x - y).join(''));
+  return out;
+}
+
 function straightCodes(A, B, C) {
   const out = [];
   for (const a of A) for (const b of B) for (const c of C) out.push('' + a + b + c);
@@ -769,7 +792,7 @@ function toast(msg) {
    界面状态
    ============================================================ */
 const sel = { straight: [new Set(), new Set(), new Set()], group: new Set() };
-const ui = { tab: 'straight' };
+const ui = { tab: 'straight', dan: null };
 let cart = [];
 
 /* ============================================================
@@ -796,8 +819,21 @@ function buildPads() {
       '<div class="row"><span class="rowlab">号码池</span>' +
       '<div class="digits">' + digitsHtml(sel.group) + '</div>' +
       '<button class="mini" data-clearpos="g">清</button></div>' +
-      '<p class="hint">组选 3：选 ≥2 个号，含「两同一异」的所有组合；组选 6：选 ≥3 个号，含「三号全不同」的所有组合。</p>';
+      danRowHtml() +
+      '<p class="hint">全复式：组选3 = 池内「两同一异」的全部组合，组选6 = 池内任取三号。<br>' +
+      '胆拖：指定一个胆码，只出含它的组合。</p>';
   }
+}
+
+function danRowHtml() {
+  const pool = Array.from(sel.group).sort((a, b) => a - b);
+  if (ui.dan != null && pool.indexOf(ui.dan) < 0) ui.dan = null;
+  if (!pool.length) return '';
+  return '<div class="row danrow"><span class="rowlab">胆码</span>' +
+    '<select id="danSel">' +
+    '<option value="">无（全复式）</option>' +
+    pool.map(d => '<option value="' + d + '"' + (ui.dan === d ? ' selected' : '') + '>' + d + '（胆拖）</option>').join('') +
+    '</select></div>';
 }
 
 function previewCodes(codes) {
@@ -824,15 +860,22 @@ function renderPick() {
       '<button class="btn ghost" data-act="clearSel">清空选择</button>';
   } else {
     const pool = Array.from(sel.group).sort((a, b) => a - b);
-    const n3 = g3Count(pool.length), n6 = g6Count(pool.length);
+    if (ui.dan != null && pool.indexOf(ui.dan) < 0) ui.dan = null;
+    const dan = ui.dan;
+    const drag = dan == null ? 0 : pool.filter(x => x !== dan).length;
+    const n3 = dan == null ? g3Count(pool.length) : g3CountWithDan(drag);
+    const n6 = dan == null ? g6Count(pool.length) : g6CountWithDan(drag);
     if (!pool.length) {
-      pv.innerHTML = '<span class="ph">在号码池里选号：2 个起可买组选 3，3 个起可买组选 6</span>';
+      pv.innerHTML = '<span class="ph">在号码池里选号：2 个起可买组选 3，3 个起可买组选 6；\n选一个胆码就变成胆拖</span>';
     } else {
+      const modeTxt = dan == null
+        ? '全复式 · 池 ' + pool.join(',')
+        : '胆拖 · 胆 ' + dan + ' 拖 ' + pool.filter(x => x !== dan).join(',');
       pv.innerHTML =
         '<div><span class="muted">组选3</span> <b>' + n3 + '</b> <span class="muted">注 ¥' + (n3 * UNIT) + '</span>' +
         '<span class="muted" style="margin:0 8px">·</span>' +
         '<span class="muted">组选6</span> <b>' + n6 + '</b> <span class="muted">注 ¥' + (n6 * UNIT) + '</span></div>' +
-        '<div class="codes">号码池：' + pool.join(',') + '</div>';
+        '<div class="codes">' + esc(modeTxt) + '</div>';
     }
     acts.innerHTML =
       '<button class="btn primary" data-act="addG3"' + (n3 ? '' : ' disabled') + '>加组选3（' + n3 + ' 注）</button>' +
@@ -1412,6 +1455,20 @@ function init() {
     }
   });
 
+  // 组选：胆码选择（下拉变化）
+  $('padWrap').addEventListener('change', e => {
+    const t = e.target;
+    if (!t || t.id !== 'danSel') return;
+    if (t.value === '') {
+      ui.dan = null;
+    } else {
+      const d = Number(t.value);
+      ui.dan = sel.group.has(d) ? d : null;
+    }
+    buildPads();
+    renderPick();
+  });
+
   // 选号区：操作按钮
   $('pickActions').addEventListener('click', e => {
     const b = e.target.closest('[data-act]');
@@ -1420,6 +1477,7 @@ function init() {
     if (act === 'clearSel') {
       sel.straight.forEach(s => s.clear());
       sel.group.clear();
+      ui.dan = null;
       buildPads(); renderPick();
       return;
     }
@@ -1436,10 +1494,19 @@ function init() {
     if (act === 'addG3' || act === 'addG6') {
       const pool = Array.from(sel.group).sort((a, b) => a - b);
       const mode = act === 'addG3' ? 'g3' : 'g6';
-      const codes = mode === 'g3' ? g3Codes(pool) : g6Codes(pool);
+      const dan = ui.dan;
+      let codes, desc;
+      if (dan == null) {
+        codes = mode === 'g3' ? g3Codes(pool) : g6Codes(pool);
+        desc = '全复式 池 ' + pool.join(',');
+      } else {
+        codes = mode === 'g3' ? g3CodesWithDan(dan, pool) : g6CodesWithDan(dan, pool);
+        desc = '胆 ' + dan + ' 拖 ' + pool.filter(x => x !== dan).join(',');
+      }
       if (!codes.length) return;
-      addItem(mode, codes, '号码池 ' + pool.join(','));
+      addItem(mode, codes, desc);
       sel.group.clear();
+      ui.dan = null;
       buildPads(); renderPick();
     }
   });
