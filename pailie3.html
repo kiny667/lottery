@@ -279,6 +279,8 @@
     font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
   }
   .gencode b{font-size:14px;letter-spacing:1px;color:var(--red)}
+  .gencode.hit{border-color:#bfe0cd;background:#eef8f2}
+  .gencode.hit b{color:var(--green)}
   .gencode i{font-size:9.5px;font-style:normal;color:#a2766f;letter-spacing:0;white-space:nowrap}
   textarea{
     font:inherit;font-size:12px;width:100%;min-height:92px;margin-top:10px;padding:9px 11px;
@@ -479,7 +481,11 @@
             <option value="straight">直选单式</option>
             <option value="g6">组选6</option>
             <option value="g3">组选3</option>
+            <option value="g6c">组选6 复式</option>
           </select>
+        </label>
+        <label class="field" id="genPoolWrap" hidden><span>号码个数</span>
+          <input id="cPoolN" type="number" value="5" min="3" max="10" inputmode="numeric">
         </label>
       </div>
       <p class="hint" id="genHint"></p>
@@ -777,6 +783,28 @@ function bestG6Pool(digits, n, weightOf) {
     if (score > bestScore) { bestScore = score; best = comb; }
   }
   return { pool: best || [], score: bestScore === -Infinity ? 0 : bestScore };
+}
+
+// 在全部 C(10,n) 个池里，选「展开后符合和值/跨度条件的注数最多」的池；
+// 打平时取加权总分高者，再打平取字典序最小的（枚举本身有序，先到先得）
+function bestG6PoolFiltered(n, sumSet, spanSet, weightOf) {
+  if (n < 3 || n > 10) return { pool: [], hit: 0, total: 0 };
+  const total = nCk(n, 3);
+  let best = null, bestHit = -1, bestW = -1;
+  for (const comb of combinations(D10, n)) {
+    const codes = g6Codes(comb);
+    let hit = 0, w = 0;
+    for (const c of codes) {
+      if (sumSet && !sumSet.has(sumOf(c))) continue;
+      if (spanSet && !spanSet.has(spanOf(c))) continue;
+      hit++;
+      w += weightOf ? weightOf(c) : 1;
+    }
+    if (hit > bestHit || (hit === bestHit && w > bestW)) {
+      best = comb; bestHit = hit; bestW = w;
+    }
+  }
+  return { pool: best || [], hit: bestHit < 0 ? 0 : bestHit, total };
 }
 
 // 不放回加权抽样；rnd 可注入，方便测试
@@ -1228,6 +1256,28 @@ function renderGenOut() {
   const sums = codes.map(sumOf);
   const spans = codes.map(spanOf);
 
+  // 组选6 复式（按条件挑池）
+  if (genResult.customPool) {
+    const { pool, codes, matched } = genResult;
+    if (!pool.length || !matched.length) {
+      box.innerHTML = '<p class="empty">没有任何号码池能覆盖符合这些和值/跨度的号码，放宽条件再试</p>';
+      btn.disabled = true;
+      return;
+    }
+    const hitSet = new Set(matched);
+    box.innerHTML =
+      '<div class="genpool"><span class="gplab">号码</span>' +
+      pool.map(d => '<b class="gpnum">' + d + '</b>').join('') +
+      '<span class="gpmx">= ' + codes.length + ' 注 · ¥' + (codes.length * UNIT) + '</span></div>' +
+      '<div class="genlist">' + codes.map(c =>
+        '<span class="gencode' + (hitSet.has(c) ? ' hit' : '') + '"><b>' + c + '</b><i>和' + sumOf(c) + ' 跨' + spanOf(c) + '</i></span>').join('') + '</div>' +
+      '<p class="hint">这 ' + codes.length + ' 注里，<b>' + matched.length + '</b> 注符合你的和值/跨度条件（绿色标出：' +
+      matched.join(' ') + '），另外 ' + (codes.length - matched.length) + ' 注不符合但也在这个池里、会一起买。' +
+      '池是按「符合的注数最多」挑的。</p>';
+    btn.disabled = false;
+    return;
+  }
+
   // 按指定和值 / 跨度：穷举结果
   if (genResult.custom) {
     if (!codes.length) {
@@ -1299,10 +1349,28 @@ function doGenerate() {
     if (sumP.bad) { toast('和值写法不对：' + sumP.bad + '（用 13 或 10-15）'); return; }
     if (spanP.bad) { toast('跨度写法不对：' + spanP.bad + '（用 6 或 4-8）'); return; }
     if (!sumP.set && !spanP.set) { toast('和值和跨度至少填一个'); return; }
+    const spec = { sum: String(sumRaw || '').trim(), span: String(spanRaw || '').trim() };
+
+    // 组选6 复式：按号码个数挑池
+    if (shape === 'g6c') {
+      const k = Math.max(3, Math.min(10, Math.round(Number($('cPoolN').value) || 5)));
+      $('cPoolN').value = String(k);
+      const res = bestG6PoolFiltered(k, sumP.set, spanP.set, wm ? (c => wm.weightOf(c)) : null);
+      const codes = g6Codes(res.pool);
+      const matched = codes.filter(c =>
+        (!sumP.set || sumP.set.has(sumOf(c))) && (!spanP.set || spanP.set.has(spanOf(c))));
+      genResult = {
+        mode: 'g6', basis: 'custom', customPool: true,
+        pool: res.pool, hit: matched.length, codes, matched, spec
+      };
+      renderGenOut();
+      return;
+    }
+
     genResult = {
       mode: shape, basis: 'custom', custom: true,
       codes: matchCodes(shape, sumP.set, spanP.set),
-      spec: { sum: String(sumRaw || '').trim(), span: String(spanRaw || '').trim() }
+      spec
     };
     renderGenOut();
     return;
@@ -1336,13 +1404,19 @@ function updateGenUI() {
   const mode = $('genMode').value;
   const isC = mode === 'g6c';
   const isCustom = mode === 'custom';
+  const isPool = isCustom && $('cShape').value === 'g6c';
   const inp = $('genCount');
 
   $('genCustom').hidden = !isCustom;
+  $('genPoolWrap').hidden = !isPool;
   $('genCountWrap').hidden = isCustom;
   $('genBasisWrap').hidden = isCustom;
   $('genCountLabel').textContent = isC ? '号码个数' : '注数';
 
+  if (isPool) {
+    $('genHint').textContent = '在全部号码池里，挑「展开后符合你条件的注数最多」的那一个；买的是整个池，不符合的注也会一起买';
+    return;
+  }
   if (isCustom) {
     $('genHint').textContent = '和值 0-27、跨度 0-9；支持 13 / 10-15 / 10,12,14，至少填一个';
     return;
@@ -1923,10 +1997,14 @@ function init() {
   $('btnGen').addEventListener('click', doGenerate);
   $('genMode').addEventListener('change', updateGenUI);
   $('genCount').addEventListener('input', updateGenUI);
+  $('cShape').addEventListener('change', updateGenUI);
   $('btnGenAdd').addEventListener('click', () => {
     if (!genResult) return;
     let desc;
-    if (genResult.custom) {
+    if (genResult.customPool) {
+      desc = '组选6 复式 池 ' + genResult.pool.join(',') +
+        ' · 和值' + (genResult.spec.sum || '不限') + ' 跨度' + (genResult.spec.span || '不限');
+    } else if (genResult.custom) {
       desc = '自选 和值' + (genResult.spec.sum || '不限') + ' 跨度' + (genResult.spec.span || '不限');
     } else if (genResult.compound) {
       desc = '组选6 复式 池 ' + genResult.pool.join(',');
