@@ -271,6 +271,8 @@
     font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
   }
   .gpmx{font-size:11.5px;color:var(--muted);margin-left:4px}
+  .gen-custom{margin-top:-4px}
+  .genmore{font-size:11px;color:var(--muted);align-self:center;padding:0 4px}
   .gencode{
     display:inline-flex;flex-direction:column;align-items:center;gap:1px;border:1px solid #f0ddd9;
     background:var(--red-soft);border-radius:8px;padding:5px 9px;
@@ -450,18 +452,35 @@
             <option value="g6">组选6 单式</option>
             <option value="g3">组选3 单式</option>
             <option value="g6c">组选6 复式（选几个号）</option>
+            <option value="custom">按和值 / 跨度自选</option>
           </select>
         </label>
-        <label class="field"><span id="genCountLabel">注数</span>
+        <label class="field" id="genCountWrap"><span id="genCountLabel">注数</span>
           <input id="genCount" type="number" value="5" min="1" max="50" inputmode="numeric">
         </label>
-        <label class="field"><span>抽样方式</span>
+        <label class="field" id="genBasisWrap"><span>抽样方式</span>
           <select id="genBasis">
             <option value="weighted">按历史热度加权</option>
             <option value="uniform">均匀随机（对照用）</option>
           </select>
         </label>
         <button class="btn primary" id="btnGen">生成参考号</button>
+      </div>
+
+      <div class="gen-grid gen-custom" id="genCustom" hidden>
+        <label class="field"><span>和值</span>
+          <input id="cSum" placeholder="13　或　10-15　或　10,12,14" autocomplete="off">
+        </label>
+        <label class="field"><span>跨度</span>
+          <input id="cSpan" placeholder="6　或　4-8　或　5,6" autocomplete="off">
+        </label>
+        <label class="field"><span>形态</span>
+          <select id="cShape">
+            <option value="straight">直选单式</option>
+            <option value="g6">组选6</option>
+            <option value="g3">组选3</option>
+          </select>
+        </label>
       </div>
       <p class="hint" id="genHint"></p>
       <div id="genOut"></div>
@@ -650,6 +669,45 @@ function shapeOf(code) {
 }
 
 // 直选 1000 注中，每个和值 / 跨度各有多少注（理论分布，枚举算出，不手写）
+const D10 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+// 解析「13」「10-15」「10,12,14」「10 12 14」这类写法
+function parseSpec(raw, lo, hi) {
+  const s = String(raw == null ? '' : raw).trim();
+  if (!s) return { set: null, bad: null };
+  const set = new Set();
+  for (const p of s.split(/[,，、\s]+/).filter(Boolean)) {
+    const m = /^(\d+)\s*[-~～－]\s*(\d+)$/.exec(p);
+    if (m) {
+      let a = Number(m[1]), b = Number(m[2]);
+      if (a > b) { const t = a; a = b; b = t; }
+      for (let v = a; v <= b; v++) if (v >= lo && v <= hi) set.add(v);
+      continue;
+    }
+    if (/^\d+$/.test(p)) {
+      const v = Number(p);
+      if (v >= lo && v <= hi) set.add(v);
+      continue;
+    }
+    return { set: null, bad: p };
+  }
+  if (!set.size) return { set: null, bad: s };
+  return { set, bad: null };
+}
+
+// 穷举出同时满足和值集合 / 跨度集合的全部号码（不是抽样）
+function matchCodes(shape, sumSet, spanSet) {
+  const all = shape === 'g6' ? g6Codes(D10)
+    : shape === 'g3' ? g3Codes(D10)
+      : straightCodes(D10, D10, D10);
+  const out = [];
+  for (const c of all) {
+    if (sumSet && !sumSet.has(sumOf(c))) continue;
+    if (spanSet && !spanSet.has(spanOf(c))) continue;
+    out.push(c);
+  }
+  return out;
+}
 const THEORY = (function () {
   const sum = new Array(28).fill(0), span = new Array(10).fill(0);
   for (let a = 0; a < 10; a++) for (let b = 0; b < 10; b++) for (let c = 0; c < 10; c++) {
@@ -1170,6 +1228,30 @@ function renderGenOut() {
   const sums = codes.map(sumOf);
   const spans = codes.map(spanOf);
 
+  // 按指定和值 / 跨度：穷举结果
+  if (genResult.custom) {
+    if (!codes.length) {
+      box.innerHTML = '<p class="empty">没有同时满足这些和值和跨度的号码，放宽一点再试</p>';
+      btn.disabled = true;
+      return;
+    }
+    const bk = { g6: 0, g3: 0, bao: 0 };
+    for (const c of codes) bk[shapeOf(c)]++;
+    const shown = codes.slice(0, 60);
+    box.innerHTML =
+      '<div class="genlist">' +
+      shown.map(c => '<span class="gencode"><b>' + c + '</b><i>和' + sumOf(c) + ' 跨' + spanOf(c) + '</i></span>').join('') +
+      (codes.length > shown.length ? '<span class="genmore">…还有 ' + (codes.length - shown.length) + ' 注</span>' : '') +
+      '</div>' +
+      '<p class="hint">共 <b>' + codes.length + '</b> 注 · ¥' + (codes.length * UNIT) +
+      (genResult.mode === 'straight'
+        ? '；其中组六 ' + bk.g6 + ' 注 / 组三 ' + bk.g3 + ' 注 / 豹子 ' + bk.bao + ' 注'
+        : '') +
+      '。这是符合条件的<b>全部</b>号码，不是抽样。</p>';
+    btn.disabled = false;
+    return;
+  }
+
   // 组选6 复式：展示号码池 + 展开的所有注
   if (genResult.compound) {
     const pool = genResult.pool;
@@ -1207,6 +1289,25 @@ function doGenerate() {
   const useWeight = basis === 'weighted' && state.history.length > 0;
   const wm = useWeight ? refWeightMap(state.history) : null;
 
+  // 按指定和值 / 跨度穷举
+  if (mode === 'custom') {
+    const shape = $('cShape').value;
+    const sumRaw = $('cSum').value;
+    const spanRaw = $('cSpan').value;
+    const sumP = parseSpec(sumRaw, 0, 27);
+    const spanP = parseSpec(spanRaw, 0, 9);
+    if (sumP.bad) { toast('和值写法不对：' + sumP.bad + '（用 13 或 10-15）'); return; }
+    if (spanP.bad) { toast('跨度写法不对：' + spanP.bad + '（用 6 或 4-8）'); return; }
+    if (!sumP.set && !spanP.set) { toast('和值和跨度至少填一个'); return; }
+    genResult = {
+      mode: shape, basis: 'custom', custom: true,
+      codes: matchCodes(shape, sumP.set, spanP.set),
+      spec: { sum: String(sumRaw || '').trim(), span: String(spanRaw || '').trim() }
+    };
+    renderGenOut();
+    return;
+  }
+
   // 组选6 复式：输入号码个数，输出 C(n,3) 注
   if (mode === 'g6c') {
     const digits = range(10);
@@ -1232,9 +1333,20 @@ function doGenerate() {
 }
 
 function updateGenUI() {
-  const isC = $('genMode').value === 'g6c';
+  const mode = $('genMode').value;
+  const isC = mode === 'g6c';
+  const isCustom = mode === 'custom';
   const inp = $('genCount');
+
+  $('genCustom').hidden = !isCustom;
+  $('genCountWrap').hidden = isCustom;
+  $('genBasisWrap').hidden = isCustom;
   $('genCountLabel').textContent = isC ? '号码个数' : '注数';
+
+  if (isCustom) {
+    $('genHint').textContent = '和值 0-27、跨度 0-9；支持 13 / 10-15 / 10,12,14，至少填一个';
+    return;
+  }
   if (isC) {
     inp.min = 3; inp.max = 10;
     const k = Math.round(Number(inp.value) || 5);
@@ -1242,12 +1354,12 @@ function updateGenUI() {
     const cur = Math.round(Number(inp.value) || 5);
     $('genHint').textContent = '选 ' + cur + ' 个号码 → C(' + cur + ',3) = ' + nCk(cur, 3) +
       ' 注 · ¥' + (nCk(cur, 3) * UNIT);
-  } else {
-    inp.min = 1; inp.max = 50;
-    const k = Math.round(Number(inp.value) || 5);
-    if (!(k >= 1 && k <= 50)) inp.value = '5';
-    $('genHint').textContent = '';
+    return;
   }
+  inp.min = 1; inp.max = 50;
+  const k2 = Math.round(Number(inp.value) || 5);
+  if (!(k2 >= 1 && k2 <= 50)) inp.value = '5';
+  $('genHint').textContent = '';
 }
 
 /* ---- 历史数据维护 ---- */
@@ -1814,7 +1926,9 @@ function init() {
   $('btnGenAdd').addEventListener('click', () => {
     if (!genResult) return;
     let desc;
-    if (genResult.compound) {
+    if (genResult.custom) {
+      desc = '自选 和值' + (genResult.spec.sum || '不限') + ' 跨度' + (genResult.spec.span || '不限');
+    } else if (genResult.compound) {
       desc = '组选6 复式 池 ' + genResult.pool.join(',');
     } else {
       desc = '参考号 · ' + (genResult.basis === 'weighted' ? '和值/跨度加权' : '均匀随机');
