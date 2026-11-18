@@ -255,6 +255,14 @@
   .gen-head span{font-weight:400;font-size:11.5px;color:var(--muted)}
   .gen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;align-items:end;margin-bottom:12px}
   .genlist{display:flex;flex-wrap:wrap;gap:6px}
+  .genpool{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .gplab{font-size:11px;color:var(--muted)}
+  .gpnum{
+    display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:8px;
+    background:var(--red);color:#fff;font-size:15px;font-weight:700;
+    font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+  }
+  .gpmx{font-size:11.5px;color:var(--muted);margin-left:4px}
   .gencode{
     display:inline-flex;flex-direction:column;align-items:center;gap:1px;border:1px solid #f0ddd9;
     background:var(--red-soft);border-radius:8px;padding:5px 9px;
@@ -423,11 +431,12 @@
         <label class="field"><span>玩法</span>
           <select id="genMode">
             <option value="straight">直选单式</option>
-            <option value="g6">组选6</option>
-            <option value="g3">组选3</option>
+            <option value="g6">组选6 单式</option>
+            <option value="g3">组选3 单式</option>
+            <option value="g6c">组选6 复式（选几个号）</option>
           </select>
         </label>
-        <label class="field"><span>注数</span>
+        <label class="field"><span id="genCountLabel">注数</span>
           <input id="genCount" type="number" value="5" min="1" max="50" inputmode="numeric">
         </label>
         <label class="field"><span>抽样方式</span>
@@ -438,6 +447,7 @@
         </label>
         <button class="btn primary" id="btnGen">生成参考号</button>
       </div>
+      <p class="hint" id="genHint"></p>
       <div id="genOut"></div>
       <div class="actions"><button class="btn" id="btnGenAdd" disabled>把这批加入清单</button></div>
     </div>
@@ -669,6 +679,30 @@ function topIdx(arr) {
 }
 function topIndexes(arr, k) {
   return arr.map((v, i) => [v, i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]).slice(0, k).map(x => x[1]);
+}
+
+function combinations(arr, k) {
+  const out = [];
+  const n = arr.length;
+  if (k < 0 || k > n) return out;
+  const idx = [];
+  (function rec(start) {
+    if (idx.length === k) { out.push(idx.map(i => arr[i])); return; }
+    for (let i = start; i < n; i++) { idx.push(i); rec(i + 1); idx.pop(); }
+  })(0);
+  return out;
+}
+
+// 在 digits 里挑 n 个号，使展开的 C(n,3) 注按 weightOf 加权后总和最大
+function bestG6Pool(digits, n, weightOf) {
+  if (n < 3 || n > digits.length) return { pool: [], score: 0 };
+  let best = null, bestScore = -Infinity;
+  for (const comb of combinations(digits, n)) {
+    let score = 0;
+    for (const c of g6Codes(comb)) score += weightOf(c);
+    if (score > bestScore) { bestScore = score; best = comb; }
+  }
+  return { pool: best || [], score: bestScore === -Infinity ? 0 : bestScore };
 }
 
 // 不放回加权抽样；rnd 可注入，方便测试
@@ -1119,6 +1153,24 @@ function renderGenOut() {
   const { codes, basis } = genResult;
   const sums = codes.map(sumOf);
   const spans = codes.map(spanOf);
+
+  // 组选6 复式：展示号码池 + 展开的所有注
+  if (genResult.compound) {
+    const pool = genResult.pool;
+    box.innerHTML =
+      '<div class="genpool"><span class="gplab">号码</span>' +
+      pool.map(d => '<b class="gpnum">' + d + '</b>').join('') +
+      '<span class="gpmx">= ' + codes.length + ' 注 · ¥' + (codes.length * UNIT) + '</span></div>' +
+      '<div class="genlist">' + codes.map((c, i) =>
+        '<span class="gencode"><b>' + c + '</b><i>和' + sums[i] + ' 跨' + spans[i] + '</i></span>').join('') + '</div>' +
+      '<p class="hint">这 ' + pool.length + ' 个号码展开成 C(' + pool.length + ',3) = ' + codes.length + ' 注组选6，' +
+      '和值 ' + Math.min(...sums) + '–' + Math.max(...sums) + '，跨度 ' + Math.min(...spans) + '–' + Math.max(...spans) + '。' +
+      (basis === 'weighted' ? '这是按历史和值/跨度热度挑出的最优池。' : '这是随机挑的池。') +
+      '号码跟下期开奖没有关系。</p>';
+    btn.disabled = false;
+    return;
+  }
+
   const hot = state.history.length ? topIndexes(histStats(state.history).sum, 3) : [];
   const hitHot = sums.filter(s => hot.indexOf(s) >= 0).length;
   box.innerHTML =
@@ -1135,16 +1187,51 @@ function renderGenOut() {
 
 function doGenerate() {
   const mode = $('genMode').value;
-  const n = Math.max(1, Math.min(50, Math.round(Number($('genCount').value) || 5)));
   const basis = $('genBasis').value;
+  const useWeight = basis === 'weighted' && state.history.length > 0;
+  const wm = useWeight ? refWeightMap(state.history) : null;
+
+  // 组选6 复式：输入号码个数，输出 C(n,3) 注
+  if (mode === 'g6c') {
+    const digits = range(10);
+    const k = Math.max(3, Math.min(10, Math.round(Number($('genCount').value) || 5)));
+    let pool;
+    if (wm) {
+      pool = bestG6Pool(digits, k, c => wm.weightOf(c)).pool;
+    } else {
+      pool = shuffle(digits).slice(0, k).sort((a, b) => a - b);
+    }
+    if (pool.length !== k) { toast('号码个数要在 3 到 10 之间'); return; }
+    genResult = { mode: 'g6', basis, codes: g6Codes(pool), compound: true, pool: pool.slice() };
+    renderGenOut();
+    return;
+  }
+
+  const n = Math.max(1, Math.min(50, Math.round(Number($('genCount').value) || 5)));
   const pool = poolForMode(mode);
   let weights = pool.map(() => 1);
-  if (basis === 'weighted' && state.history.length) {
-    const wm = refWeightMap(state.history);
-    weights = pool.map(c => wm.weightOf(c));
-  }
+  if (wm) weights = pool.map(c => wm.weightOf(c));
   genResult = { mode, basis, codes: sampleWeighted(pool, weights, n, randInt) };
   renderGenOut();
+}
+
+function updateGenUI() {
+  const isC = $('genMode').value === 'g6c';
+  const inp = $('genCount');
+  $('genCountLabel').textContent = isC ? '号码个数' : '注数';
+  if (isC) {
+    inp.min = 3; inp.max = 10;
+    const k = Math.round(Number(inp.value) || 5);
+    if (!(k >= 3 && k <= 10)) inp.value = '5';
+    const cur = Math.round(Number(inp.value) || 5);
+    $('genHint').textContent = '选 ' + cur + ' 个号码 → C(' + cur + ',3) = ' + nCk(cur, 3) +
+      ' 注 · ¥' + (nCk(cur, 3) * UNIT);
+  } else {
+    inp.min = 1; inp.max = 50;
+    const k = Math.round(Number(inp.value) || 5);
+    if (!(k >= 1 && k <= 50)) inp.value = '5';
+    $('genHint').textContent = '';
+  }
 }
 
 /* ---- 历史数据维护 ---- */
@@ -1659,9 +1746,16 @@ function init() {
 
   // 参考号
   $('btnGen').addEventListener('click', doGenerate);
+  $('genMode').addEventListener('change', updateGenUI);
+  $('genCount').addEventListener('input', updateGenUI);
   $('btnGenAdd').addEventListener('click', () => {
     if (!genResult) return;
-    const desc = '参考号 · ' + (genResult.basis === 'weighted' ? '和值/跨度加权' : '均匀随机');
+    let desc;
+    if (genResult.compound) {
+      desc = '组选6 复式 池 ' + genResult.pool.join(',');
+    } else {
+      desc = '参考号 · ' + (genResult.basis === 'weighted' ? '和值/跨度加权' : '均匀随机');
+    }
     addItem(genResult.mode, genResult.codes, desc);
     genResult = null;
     renderGenOut();
@@ -1694,6 +1788,7 @@ function init() {
   $('issue').addEventListener('input', () => { state.settings.lastIssue = $('issue').value.trim(); saveState(); });
 
   syncInputs();
+  updateGenUI();
   renderAll();
 
   if (storageBroken) {
